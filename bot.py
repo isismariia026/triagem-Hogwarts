@@ -1097,7 +1097,7 @@ async def responder(
 
     # ================= FICHA =================
 
-def montar_ficha(
+async def montar_ficha(
     user_id,
     context=None
 ):
@@ -1120,8 +1120,7 @@ def montar_ficha(
     )
 
 
-    perfil_extra = (
-        texto_perfil(
+    perfil_extra = await texto_perfil(
             context,
             user_id
         )
@@ -1160,13 +1159,13 @@ async def finalizar(
 
     user_key = k(user_id)
 
-    texto = montar_ficha(
+    texto = await montar_ficha(
         user_id,
         context
     )
 
 
-    tem_foto, tem_usuario, username = verificar_perfil(
+    tem_foto, tem_usuario, username = await verificar_perfil(
         context,
         user_id
     )
@@ -1281,13 +1280,23 @@ async def finalizar(
     )
 
 # ================= PERFIL / LINK =================
-def verificar_perfil(context, user_id):
-    chat = context.bot.get_chat(user_id)
+async def verificar_perfil(context, user_id):
+
+    chat = await context.bot.get_chat(user_id)
+
     username = chat.username
 
-    fotos = context.bot.get_user_profile_photos(user_id, limit=1)
+    fotos = await context.bot.get_user_profile_photos(
+        user_id,
+        limit=1
+    )
+
     tem_foto = fotos.total_count > 0
-    tem_usuario = username is not None and username.strip() != ""
+
+    tem_usuario = (
+        username is not None
+        and username.strip() != ""
+    )
 
     return tem_foto, tem_usuario, username
 
@@ -1347,7 +1356,7 @@ def verificar_usuario(update, context):
         )
         return
 
-    tem_foto, tem_usuario, username = verificar_perfil(context, user_id)
+    tem_foto, tem_usuario, username = await verificar_perfil(context, user_id)
 
     if tem_foto and tem_usuario:
         enviar_link_unico(context, user_id, nome, username)
@@ -1411,7 +1420,7 @@ def decisao(update, context):
     ficha = ficha_do_aluno(user_key)
 
     if acao == "aprovar":
-        tem_foto, tem_usuario, username = verificar_perfil(context, user_id)
+        tem_foto, tem_usuario, username = await verificar_perfil(context, user_id)
 
         # Sai de Fichas Aguardando
         fichas_alunos.pop(user_key, None)
@@ -1603,7 +1612,7 @@ def menu_callback(update, context):
         uid = data.replace("reverificar_", "")
         nome = usuarios.get(uid, {}).get("nome", str(uid))
 
-        tem_foto, tem_usuario, username = verificar_perfil(context, int(uid))
+        tem_foto, tem_usuario, username = await verificar_perfil(context, int(uid))
 
         if tem_foto and tem_usuario:
             ficha = alunos_pendentes.get(uid, {}).get("ficha", ficha_do_aluno(uid))
