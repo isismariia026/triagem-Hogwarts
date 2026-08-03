@@ -92,52 +92,96 @@ perguntas = [
 ]
 
 # ================= SALVAR / CARREGAR =================
-def carregar_dados():
+
+def salvar_dados():
     dados = {
-        usuarios.update(dados.get("usuarios", {}))
-        fichas_alunos.update(dados.get("fichas_alunos", {}))
-        alunos_pendentes.update(dados.get("alunos_pendentes", {}))
-        alunos_liberados.update(dados.get("alunos_liberados", {}))
-        alunos_reprovados.update(dados.get("alunos_reprovados", {}))
-        alunos_entraram_triagem.update(dados.get("alunos_entraram_triagem", {}))
-        links_enviados.update(dados.get("links_enviados", {}))
-        historico_links.update(dados.get("historico_links", {}))
-        alunos_no_oficial.update(dados.get("alunos_no_oficial", {}))
+        "usuarios": usuarios,
+        "fichas_alunos": fichas_alunos,
+        "alunos_pendentes": alunos_pendentes,
+        "alunos_liberados": alunos_liberados,
+        "alunos_reprovados": alunos_reprovados,
+        "alunos_entraram_triagem": alunos_entraram_triagem,
+        "links_enviados": links_enviados,
+        "historico_links": historico_links,
+        "alunos_no_oficial": alunos_no_oficial,
+        "config_acesso": config_acesso,
     }
 
     with open(ARQUIVO_DADOS, "w", encoding="utf-8") as f:
-        json.dump(dados, f, ensure_ascii=False, indent=4)
+        json.dump(
+            dados,
+            f,
+            ensure_ascii=False,
+            indent=4
+        )
 
 
 def carregar_dados():
-    global usuarios, fichas_alunos, alunos_pendentes, alunos_liberados
-    global alunos_reprovados, alunos_entraram_triagem, links_enviados
-    global historico_links, alunos_no_oficial, config_acesso
+
+    global usuarios, fichas_alunos, alunos_pendentes
+    global alunos_liberados, alunos_reprovados
+    global alunos_entraram_triagem, links_enviados
+    global historico_links, alunos_no_oficial
+    global config_acesso
+
 
     if not os.path.exists(ARQUIVO_DADOS):
         salvar_dados()
         return
 
+
     try:
-        with open(ARQUIVO_DADOS, "r", encoding="utf-8") as f:
+        with open(
+            ARQUIVO_DADOS,
+            "r",
+            encoding="utf-8"
+        ) as f:
             dados = json.load(f)
+
     except Exception:
         salvar_dados()
         return
 
-    usuarios = dados.get("usuarios", {})
-    fichas_alunos = dados.get("fichas_alunos", {})
-    alunos_pendentes = dados.get("alunos_pendentes", {})
-    alunos_liberados = dados.get("alunos_liberados", {})
-    alunos_reprovados = dados.get("alunos_reprovados", {})
-    alunos_entraram_triagem = dados.get("alunos_entraram_triagem", {})
-    links_enviados = dados.get("links_enviados", {})
-    historico_links = dados.get("historico_links", {})
-    alunos_no_oficial = dados.get("alunos_no_oficial", {})
 
-    config_salva = dados.get("config_acesso", {})
-    config_acesso.update(config_salva)
+    usuarios.update(
+        dados.get("usuarios", {})
+    )
 
+    fichas_alunos.update(
+        dados.get("fichas_alunos", {})
+    )
+
+    alunos_pendentes.update(
+        dados.get("alunos_pendentes", {})
+    )
+
+    alunos_liberados.update(
+        dados.get("alunos_liberados", {})
+    )
+
+    alunos_reprovados.update(
+        dados.get("alunos_reprovados", {})
+    )
+
+    alunos_entraram_triagem.update(
+        dados.get("alunos_entraram_triagem", {})
+    )
+
+    links_enviados.update(
+        dados.get("links_enviados", {})
+    )
+
+    historico_links.update(
+        dados.get("historico_links", {})
+    )
+
+    alunos_no_oficial.update(
+        dados.get("alunos_no_oficial", {})
+    )
+
+    config_acesso.update(
+        dados.get("config_acesso", {})
+    )
 
 def k(user_id):
     return str(user_id)
