@@ -1094,8 +1094,8 @@ async def responder(
             context,
             user_id
         )
-
-    # ================= FICHA =================
+        
+# ================= FICHA =================
 
 async def montar_ficha(
     user_id,
@@ -1120,7 +1120,8 @@ async def montar_ficha(
     )
 
 
-    perfil_extra = await texto_perfil(
+    perfil_extra = (
+        await texto_perfil(
             context,
             user_id
         )
@@ -1149,8 +1150,6 @@ async def montar_ficha(
 
 
     return texto
-
-
 
 async def finalizar(
     context: ContextTypes.DEFAULT_TYPE,
