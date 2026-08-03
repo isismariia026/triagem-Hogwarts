@@ -244,6 +244,34 @@ async def texto_perfil(context, user_id):
         f"👁 Perfil: {perfil_link}\n"
         f"📸 Foto no perfil: {foto_txt}\n"
     )
+    
+# ================= TECLADO PROFESSORES =================
+
+def teclado_professores():
+
+    teclado = [
+        [
+            "📜 Fichas Aguardando",
+            "⚠️ Alunos Pendentes"
+        ],
+        [
+            "✅ Alunos Aprovados",
+            "❌ Alunos Reprovados"
+        ],
+        [
+            "🧍 Entraram na Triagem",
+            "🏰 Entraram no Oficial"
+        ],
+        [
+            "🔗 Links Enviados",
+            "⚙️ Personalizar Acesso"
+        ]
+    ]
+
+    return ReplyKeyboardMarkup(
+        teclado,
+        resize_keyboard=True
+    )
 
 # ================= START =================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
