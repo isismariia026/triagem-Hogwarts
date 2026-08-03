@@ -1,6 +1,5 @@
 import json
 import os
-import asyncio
 
 from telegram import (
     Update,
@@ -93,18 +92,17 @@ perguntas = [
 ]
 
 # ================= SALVAR / CARREGAR =================
-def salvar_dados():
+def carregar_dados():
     dados = {
-        "usuarios": usuarios,
-        "fichas_alunos": fichas_alunos,
-        "alunos_pendentes": alunos_pendentes,
-        "alunos_liberados": alunos_liberados,
-        "alunos_reprovados": alunos_reprovados,
-        "alunos_entraram_triagem": alunos_entraram_triagem,
-        "links_enviados": links_enviados,
-        "historico_links": historico_links,
-        "alunos_no_oficial": alunos_no_oficial,
-        "config_acesso": config_acesso,
+        usuarios.update(dados.get("usuarios", {}))
+        fichas_alunos.update(dados.get("fichas_alunos", {}))
+        alunos_pendentes.update(dados.get("alunos_pendentes", {}))
+        alunos_liberados.update(dados.get("alunos_liberados", {}))
+        alunos_reprovados.update(dados.get("alunos_reprovados", {}))
+        alunos_entraram_triagem.update(dados.get("alunos_entraram_triagem", {}))
+        links_enviados.update(dados.get("links_enviados", {}))
+        historico_links.update(dados.get("historico_links", {}))
+        alunos_no_oficial.update(dados.get("alunos_no_oficial", {}))
     }
 
     with open(ARQUIVO_DADOS, "w", encoding="utf-8") as f:
@@ -148,12 +146,25 @@ def k(user_id):
 def ficha_do_aluno(user_key):
     if user_key in fichas_alunos:
         return fichas_alunos[user_key]
+
     if user_key in alunos_pendentes:
-        return alunos_pendentes[user_key].get("ficha", "Ficha não encontrada.")
+        return alunos_pendentes[user_key].get(
+            "ficha",
+            "Ficha não encontrada."
+        )
+
     if user_key in alunos_liberados:
-        return alunos_liberados[user_key].get("ficha", "Ficha não encontrada.")
+        return alunos_liberados[user_key].get(
+            "ficha",
+            "Ficha não encontrada."
+        )
+
     if user_key in alunos_reprovados:
-        return alunos_reprovados[user_key].get("ficha", "Ficha não encontrada.")
+        return alunos_reprovados[user_key].get(
+            "ficha",
+            "Ficha não encontrada."
+        )
+
     return "Ficha não encontrada."
 
 
@@ -166,14 +177,21 @@ def tem_triagem_bloqueada(user_key):
     )
 
 
-def texto_perfil(context, user_id):
+async def texto_perfil(context, user_id):
+
     try:
-        tem_foto, tem_usuario, username = verificar_perfil(context, user_id)
+        tem_foto, tem_usuario, username = await verificar_perfil(
+            context,
+            user_id
+        )
+
     except Exception:
         tem_foto, tem_usuario, username = False, False, None
 
     username_txt = f"@{username}" if tem_usuario else "Sem usuário"
+
     perfil_link = f"tg://user?id={user_id}"
+
     foto_txt = "Sim" if tem_foto else "Não"
 
     return (
@@ -183,63 +201,15 @@ def texto_perfil(context, user_id):
         f"📸 Foto no perfil: {foto_txt}\n"
     )
 
-# ================= TECLADO PROFESSORES =================
-def teclado_professores():
-    return ReplyKeyboardMarkup(
-        [
-            ["📜 Fichas Aguardando", "✅ Alunos Aprovados"],
-            ["⚠️ Alunos Pendentes", "❌ Alunos Reprovados"],
-            ["🧍 Entraram na Triagem", "🏰 Entraram no Oficial"],
-            ["🔗 Links Enviados", "🎨 Personalizar Acesso"],
-            ["🧪 Iniciar Teste"]
-        ],
-        resize_keyboard=True
-    )
-
-
-def teclado_personalizar():
-    return ReplyKeyboardMarkup(
-        [
-            ["🖼 Alterar imagem do acesso"],
-            ["✏️ Alterar mensagem do acesso"],
-            ["🔘 Alterar texto do botão"],
-            ["👁 Visualizar acesso"],
-            ["🔙 Voltar"]
-        ],
-        resize_keyboard=True
-    )
-
-
-# ================= CONTROLE DE MODO ADMIN =================
-def eh_botao_admin(texto):
-    botoes = [
-        "📜 Fichas Aguardando",
-        "📜 Fichas dos Alunos",
-        "✅ Alunos Aprovados",
-        "🚪 Alunos Liberados",
-        "⚠️ Alunos Pendentes",
-        "❌ Alunos Reprovados",
-        "🧍 Entraram na Triagem",
-        "🧍 Alunos na Triagem",
-        "🏰 Entraram no Oficial",
-        "🔗 Links Enviados",
-        "🎨 Personalizar Acesso",
-        "🧪 Iniciar Teste",
-        "🖼 Alterar imagem do acesso",
-        "✏️ Alterar mensagem do acesso",
-        "🔘 Alterar texto do botão",
-        "👁 Visualizar acesso",
-        "🔙 Voltar",
-    ]
-    return texto in botoes
-
 # ================= START =================
-def start(update, context):
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
     user_id = update.message.from_user.id
 
     if user_id == ADMIN_ID:
         context.user_data.clear()
-        update.message.reply_text(
+
+        await update.message.reply_text(
             f"🏰✨ Bem-vinda à Sala dos Professores!\n\n"
             f"{NOME_GUARDIA} está pronta para organizar as fichas dos alunos.",
             reply_markup=teclado_professores()
@@ -249,32 +219,45 @@ def start(update, context):
     user_key = k(user_id)
 
     if user_id not in IDS_TESTE and tem_triagem_bloqueada(user_key):
+
         if user_key in fichas_alunos:
-            update.message.reply_text("📜 Sua triagem já foi finalizada e está aguardando avaliação dos professores.")
+            await update.message.reply_text(
+                "📜 Sua triagem já foi finalizada e está aguardando avaliação dos professores."
+            )
             return
+
         if user_key in alunos_pendentes:
-            update.message.reply_text("⚠️ Sua ficha está pendente. Corrija foto/usuário e envie /verificar.")
+            await update.message.reply_text(
+                "⚠️ Sua ficha está pendente. Corrija foto/usuário e envie /verificar."
+            )
             return
+
         if user_key in alunos_liberados:
-            update.message.reply_text("✅ Você já foi aprovado e liberado para a Biblioteca de Hogwarts.")
+            await update.message.reply_text(
+                "✅ Você já foi aprovado e liberado para a Biblioteca de Hogwarts."
+            )
             return
+
         if user_key in alunos_reprovados:
-            update.message.reply_text("❌ Sua triagem já foi avaliada. Aguarde orientação dos professores.")
+            await update.message.reply_text(
+                "❌ Sua triagem já foi avaliada. Aguarde orientação dos professores."
+            )
             return
 
     usuarios[user_key] = {"etapa": "nome"}
 
-    # Se a pessoa começou a prova, ela fica como "em andamento"
     alunos_entraram_triagem.setdefault(user_key, {
         "nome": update.message.from_user.first_name,
         "username": update.message.from_user.username or "Sem usuário",
         "id": user_id,
         "status": "Começou a triagem"
     })
+
     alunos_entraram_triagem[user_key]["status"] = "Começou a triagem"
+
     salvar_dados()
 
-    update.message.reply_text(
+    await update.message.reply_text(
         f"{NOME_GUARDIA}\n\n"
         "🧪✨ Triagem Literária iniciada!\n\n"
         "Antes de receber o acesso ao grupo oficial Biblioteca de Hogwarts 🏰📖, "
@@ -282,12 +265,16 @@ def start(update, context):
         "✨ Primeiro, diga seu nome:"
     )
 
+
 # ================= NOVO MEMBRO NA TRIAGEM / OFICIAL =================
-def novo_membro(update, context):
+async def novo_membro(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
     chat_id = update.message.chat_id
 
     if chat_id == GRUPO_TRIAGEM_ID:
+
         for membro in update.message.new_chat_members:
+
             if membro.is_bot:
                 continue
 
@@ -301,6 +288,7 @@ def novo_membro(update, context):
                 "id": user_id,
                 "status": "Entrou na triagem, mas ainda não finalizou"
             }
+
             salvar_dados()
 
             keyboard = [[
@@ -310,7 +298,7 @@ def novo_membro(update, context):
                 )
             ]]
 
-            context.bot.send_message(
+            await context.bot.send_message(
                 chat_id=GRUPO_TRIAGEM_ID,
                 text=(
                     f"🦉✨ Seja bem-vindo(a), {nome}!\n\n"
@@ -325,8 +313,11 @@ def novo_membro(update, context):
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
 
+
     elif chat_id == GRUPO_OFICIAL_ID:
+
         for membro in update.message.new_chat_members:
+
             user_id = membro.id
             user_key = k(user_id)
 
@@ -352,11 +343,13 @@ def novo_membro(update, context):
                 alunos_liberados[user_key]["status"] = "Entrou no grupo oficial"
 
             if user_key in links_enviados:
+
                 try:
-                    context.bot.delete_message(
+                    await context.bot.delete_message(
                         chat_id=user_id,
                         message_id=links_enviados[user_key]
                     )
+
                 except Exception as erro:
                     print("Erro ao apagar link do PV:", erro)
 
@@ -364,264 +357,388 @@ def novo_membro(update, context):
 
             salvar_dados()
 
-# ================= MENU PROFESSORES =================
-def menu_professores_texto(update, context):
-    user_id = update.message.from_user.id
-    texto = update.message.text
-
-    if user_id != ADMIN_ID:
-        return False
-
-    if texto in ["📜 Fichas dos Alunos", "📜 Fichas Aguardando"]:
-        mostrar_lista_fichas(update, context)
-        return True
-
-    if texto in ["✅ Alunos Aprovados", "🚪 Alunos Liberados"]:
-        mostrar_liberados(update, context)
-        return True
-
-    if texto == "❌ Alunos Reprovados":
-        mostrar_reprovados(update, context)
-        return True
-
-    if texto == "🏰 Entraram no Oficial":
-        mostrar_entraram_oficial(update, context)
-        return True
-
-    if texto == "🔗 Links Enviados":
-        mostrar_links_enviados(update, context)
-        return True
-
-    if texto == "⚠️ Alunos Pendentes":
-        mostrar_pendentes(update, context)
-        return True
-
-    if texto in ["🧍 Entraram na Triagem", "🧍 Alunos na Triagem"]:
-        mostrar_entradas_triagem(update, context)
-        return True
-
-    if texto == "🎨 Personalizar Acesso":
-        update.message.reply_text(
-            "🎨 Personalizar Acesso\n\nEscolha o que deseja alterar:",
-            reply_markup=teclado_personalizar()
-        )
-        return True
-
-    if texto == "🔙 Voltar":
-        context.user_data.clear()
-        update.message.reply_text("🏰 Sala dos Professores", reply_markup=teclado_professores())
-        return True
-
-    if texto == "🖼 Alterar imagem do acesso":
-        context.user_data["modo_admin"] = "alterar_imagem_acesso"
-        update.message.reply_text(
-            "🖼 Envie agora a imagem/banner do acesso.\n\nPara remover a imagem, digite: remover",
-            reply_markup=teclado_personalizar()
-        )
-        return True
-
-    if texto == "✏️ Alterar mensagem do acesso":
-        context.user_data["modo_admin"] = "alterar_mensagem_acesso"
-        update.message.reply_text(
-            "✏️ Envie agora a nova mensagem do acesso.\n\nEla aparecerá acima do botão de entrada.",
-            reply_markup=teclado_personalizar()
-        )
-        return True
-
-    if texto == "🔘 Alterar texto do botão":
-        context.user_data["modo_admin"] = "alterar_botao_acesso"
-        update.message.reply_text(
-            "🔘 Envie agora o novo texto do botão.\n\nExemplo: 🏰 Entrar na Biblioteca",
-            reply_markup=teclado_personalizar()
-        )
-        return True
-
-    if texto == "👁 Visualizar acesso":
-        enviar_preview_acesso(update, context)
-        return True
-
-    if texto == "🧪 Iniciar Teste":
-        usuarios[k(user_id)] = {"etapa": "nome"}
-        salvar_dados()
-        update.message.reply_text("🧪 Teste iniciado.\n\n✨ Diga seu nome:")
-        return True
-
-    return False
-
-
 # ================= PERSONALIZAÇÃO DO ACESSO =================
-def processar_personalizacao_admin(update, context):
+async def processar_personalizacao_admin(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
     if update.message.from_user.id != ADMIN_ID:
         return False
 
     modo = context.user_data.get("modo_admin")
+
     if not modo:
         return False
 
     texto = update.message.text.strip() if update.message.text else ""
 
+
     if modo == "alterar_imagem_acesso":
+
         if update.message.photo:
+
             config_acesso["imagem_file_id"] = update.message.photo[-1].file_id
+
             salvar_dados()
+
             context.user_data.pop("modo_admin", None)
-            update.message.reply_text("✅ Imagem do acesso atualizada.", reply_markup=teclado_personalizar())
+
+            await update.message.reply_text(
+                "✅ Imagem do acesso atualizada.",
+                reply_markup=teclado_personalizar()
+            )
+
             return True
+
 
         if texto.lower() == "remover":
+
             config_acesso["imagem_file_id"] = None
+
             salvar_dados()
+
             context.user_data.pop("modo_admin", None)
-            update.message.reply_text("✅ Imagem removida do acesso.", reply_markup=teclado_personalizar())
+
+            await update.message.reply_text(
+                "✅ Imagem removida do acesso.",
+                reply_markup=teclado_personalizar()
+            )
+
             return True
 
-        update.message.reply_text("⚠️ Envie uma imagem ou digite remover.")
+
+        await update.message.reply_text(
+            "⚠️ Envie uma imagem ou digite remover."
+        )
+
         return True
+
+
 
     if modo == "alterar_mensagem_acesso":
+
         if not texto:
-            update.message.reply_text("⚠️ Envie uma mensagem em texto.")
+
+            await update.message.reply_text(
+                "⚠️ Envie uma mensagem em texto."
+            )
+
             return True
+
+
         config_acesso["mensagem"] = texto
+
         salvar_dados()
+
         context.user_data.pop("modo_admin", None)
-        update.message.reply_text("✅ Mensagem do acesso atualizada.", reply_markup=teclado_personalizar())
+
+        await update.message.reply_text(
+            "✅ Mensagem do acesso atualizada.",
+            reply_markup=teclado_personalizar()
+        )
+
         return True
 
+
+
     if modo == "alterar_botao_acesso":
+
         if not texto:
-            update.message.reply_text("⚠️ Envie o texto do botão.")
+
+            await update.message.reply_text(
+                "⚠️ Envie o texto do botão."
+            )
+
             return True
+
+
         config_acesso["texto_botao"] = texto
+
         salvar_dados()
+
         context.user_data.pop("modo_admin", None)
-        update.message.reply_text("✅ Texto do botão atualizado.", reply_markup=teclado_personalizar())
+
+        await update.message.reply_text(
+            "✅ Texto do botão atualizado.",
+            reply_markup=teclado_personalizar()
+        )
+
         return True
+
 
     return False
 
 
-def enviar_preview_acesso(update, context):
-    keyboard = [[InlineKeyboardButton(config_acesso["texto_botao"], url="https://t.me/preview")]]
-    caption = f"{NOME_GUARDIA}\n\n{config_acesso['mensagem']}"
+
+async def enviar_preview_acesso(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    keyboard = [[
+        InlineKeyboardButton(
+            config_acesso["texto_botao"],
+            url="https://t.me/preview"
+        )
+    ]]
+
+    caption = (
+        f"{NOME_GUARDIA}\n\n"
+        f"{config_acesso['mensagem']}"
+    )
+
 
     if config_acesso.get("imagem_file_id"):
-        update.message.reply_photo(
+
+        await update.message.reply_photo(
             photo=config_acesso["imagem_file_id"],
             caption=caption,
             reply_markup=InlineKeyboardMarkup(keyboard),
             protect_content=True
         )
+
+
     else:
-        update.message.reply_text(
+
+        await update.message.reply_text(
             caption,
             reply_markup=InlineKeyboardMarkup(keyboard),
             protect_content=True
         )
 
-# ================= LISTAS =================
-def mostrar_lista_fichas(update, context):
+    # ================= LISTAS =================
+
+async def mostrar_lista_fichas(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
     if not fichas_alunos:
-        update.message.reply_text(
+
+        await update.message.reply_text(
             "📜 Nenhuma ficha aguardando avaliação.\n\n"
             "Aqui só aparecem alunos que finalizaram a triagem e ainda não foram aprovados/reprovados.",
             reply_markup=teclado_professores()
         )
+
         return
 
-    keyboard = []
-    for uid in fichas_alunos:
-        nome = usuarios.get(uid, {}).get("nome", str(uid))
-        keyboard.append([InlineKeyboardButton(f"👤 {nome}", callback_data=f"ver_ficha_{uid}")])
 
-    update.message.reply_text(
+    keyboard = []
+
+    for uid in fichas_alunos:
+
+        nome = usuarios.get(uid, {}).get("nome", str(uid))
+
+        keyboard.append([
+            InlineKeyboardButton(
+                f"👤 {nome}",
+                callback_data=f"ver_ficha_{uid}"
+            )
+        ])
+
+
+    await update.message.reply_text(
         "📜 Fichas Aguardando Avaliação\n\nEscolha uma ficha:",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
 
-def mostrar_pendentes(update, context):
+
+async def mostrar_pendentes(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
     if not alunos_pendentes:
-        update.message.reply_text("⚠️ Nenhum aluno pendente no momento.", reply_markup=teclado_professores())
+
+        await update.message.reply_text(
+            "⚠️ Nenhum aluno pendente no momento.",
+            reply_markup=teclado_professores()
+        )
+
         return
 
+
     keyboard = []
+
     for uid in alunos_pendentes:
-        nome = alunos_pendentes[uid].get("nome", str(uid))
-        keyboard.append([InlineKeyboardButton(f"⚠️ {nome}", callback_data=f"ver_pendente_{uid}")])
 
-    update.message.reply_text(
-        "⚠️ Alunos Pendentes\n\nAqui ficam alunos que precisam corrigir foto/usuário. Você também pode liberar manualmente se conhecer a pessoa.\n\nEscolha um aluno:",
+        nome = alunos_pendentes[uid].get("nome", str(uid))
+
+        keyboard.append([
+            InlineKeyboardButton(
+                f"⚠️ {nome}",
+                callback_data=f"ver_pendente_{uid}"
+            )
+        ])
+
+
+    await update.message.reply_text(
+        "⚠️ Alunos Pendentes\n\n"
+        "Aqui ficam alunos que precisam corrigir foto/usuário. "
+        "Você também pode liberar manualmente se conhecer a pessoa.\n\n"
+        "Escolha um aluno:",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
 
-def mostrar_liberados(update, context):
+
+async def mostrar_liberados(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
     if not alunos_liberados:
-        update.message.reply_text("✅ Nenhum aluno aprovado/liberado ainda.", reply_markup=teclado_professores())
+
+        await update.message.reply_text(
+            "✅ Nenhum aluno aprovado/liberado ainda.",
+            reply_markup=teclado_professores()
+        )
+
         return
 
-    keyboard = []
-    for uid, info in alunos_liberados.items():
-        nome = info.get("nome", str(uid))
-        keyboard.append([InlineKeyboardButton(f"✅ {nome}", callback_data=f"ver_aprovado_{uid}")])
 
-    update.message.reply_text(
-        "✅ Alunos Aprovados / Liberados\n\nAqui ficam somente alunos aprovados.",
+    keyboard = []
+
+    for uid, info in alunos_liberados.items():
+
+        nome = info.get("nome", str(uid))
+
+        keyboard.append([
+            InlineKeyboardButton(
+                f"✅ {nome}",
+                callback_data=f"ver_aprovado_{uid}"
+            )
+        ])
+
+
+    await update.message.reply_text(
+        "✅ Alunos Aprovados / Liberados\n\n"
+        "Aqui ficam somente alunos aprovados.",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
 
-def mostrar_entradas_triagem(update, context):
+
+async def mostrar_entradas_triagem(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
     nao_finalizaram = {
-        uid: info for uid, info in alunos_entraram_triagem.items()
+        uid: info
+        for uid, info in alunos_entraram_triagem.items()
         if uid not in fichas_alunos
         and uid not in alunos_pendentes
         and uid not in alunos_liberados
         and uid not in alunos_reprovados
     }
 
+
     if not nao_finalizaram:
-        update.message.reply_text(
+
+        await update.message.reply_text(
             "🧍 Nenhum aluno parado na triagem.\n\n"
             "Aqui só aparecem pessoas que entraram na triagem, mas ainda não finalizaram a prova.",
             reply_markup=teclado_professores()
         )
+
         return
 
-    texto = "🧍 Entraram na Triagem e Ainda Não Finalizaram\n\n"
-    for uid, info in nao_finalizaram.items():
-        username = info.get("username", "Sem usuário")
-        texto += f"👤 {info.get('nome', 'Sem nome')}\n🆔 ID: {uid}\n🔗 Usuário: {username}\n📌 Status: {info.get('status', 'Ainda não finalizou')}\n\n"
 
-    update.message.reply_text(texto, reply_markup=teclado_professores())
-
-
-def mostrar_reprovados(update, context):
-    if not alunos_reprovados:
-        update.message.reply_text("❌ Nenhum aluno reprovado ainda.", reply_markup=teclado_professores())
-        return
-
-    keyboard = []
-    for uid, info in alunos_reprovados.items():
-        nome = info.get("nome", str(uid))
-        keyboard.append([InlineKeyboardButton(f"❌ {nome}", callback_data=f"ver_reprovado_{uid}")])
-
-    update.message.reply_text(
-        "❌ Alunos Reprovados\n\nAqui ficam somente alunos reprovados.",
-        reply_markup=InlineKeyboardMarkup(keyboard)
+    texto = (
+        "🧍 Entraram na Triagem e Ainda Não Finalizaram\n\n"
     )
 
 
-def mostrar_entraram_oficial(update, context):
-    if not alunos_no_oficial:
-        update.message.reply_text("🏰 Nenhum aluno entrou no grupo oficial ainda.", reply_markup=teclado_professores())
+    for uid, info in nao_finalizaram.items():
+
+        username = info.get(
+            "username",
+            "Sem usuário"
+        )
+
+        texto += (
+            f"👤 {info.get('nome', 'Sem nome')}\n"
+            f"🆔 ID: {uid}\n"
+            f"🔗 Usuário: {username}\n"
+            f"📌 Status: {info.get('status', 'Ainda não finalizou')}\n\n"
+        )
+
+
+    await update.message.reply_text(
+        texto,
+        reply_markup=teclado_professores()
+    )
+
+
+
+async def mostrar_reprovados(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    if not alunos_reprovados:
+
+        await update.message.reply_text(
+            "❌ Nenhum aluno reprovado ainda.",
+            reply_markup=teclado_professores()
+        )
+
         return
 
-    texto = "🏰 Alunos que Entraram na Biblioteca de Hogwarts\n\n"
+
+    keyboard = []
+
+    for uid, info in alunos_reprovados.items():
+
+        nome = info.get("nome", str(uid))
+
+        keyboard.append([
+            InlineKeyboardButton(
+                f"❌ {nome}",
+                callback_data=f"ver_reprovado_{uid}"
+            )
+        ])
+
+
+    await update.message.reply_text(
+        "❌ Alunos Reprovados\n\n"
+        "Aqui ficam somente alunos reprovados.",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+    # ================= LISTAS CONTINUAÇÃO =================
+
+async def mostrar_entraram_oficial(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    if not alunos_no_oficial:
+
+        await update.message.reply_text(
+            "🏰 Nenhum aluno entrou no grupo oficial ainda.",
+            reply_markup=teclado_professores()
+        )
+
+        return
+
+
+    texto = (
+        "🏰 Alunos que Entraram na Biblioteca de Hogwarts\n\n"
+    )
+
 
     for uid, info in alunos_no_oficial.items():
-        username = info.get("username", "Sem usuário")
+
+        username = info.get(
+            "username",
+            "Sem usuário"
+        )
+
         texto += (
             f"👤 Nome: {info.get('nome', 'Sem nome')}\n"
             f"🆔 ID: {uid}\n"
@@ -629,17 +746,37 @@ def mostrar_entraram_oficial(update, context):
             f"📌 Status: {info.get('status', 'Sem status')}\n\n"
         )
 
-    update.message.reply_text(texto, reply_markup=teclado_professores())
+
+    await update.message.reply_text(
+        texto,
+        reply_markup=teclado_professores()
+    )
 
 
-def mostrar_links_enviados(update, context):
+
+async def mostrar_links_enviados(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
     if not historico_links:
-        update.message.reply_text("🔗 Nenhum link enviado ainda.", reply_markup=teclado_professores())
+
+        await update.message.reply_text(
+            "🔗 Nenhum link enviado ainda.",
+            reply_markup=teclado_professores()
+        )
+
         return
 
-    texto = f"🔗 Links Enviados\n\nTotal: {len(historico_links)}\n\n"
+
+    texto = (
+        f"🔗 Links Enviados\n\n"
+        f"Total: {len(historico_links)}\n\n"
+    )
+
 
     for uid, info in historico_links.items():
+
         texto += (
             f"👤 Nome: {info.get('nome', 'Sem nome')}\n"
             f"🆔 ID: {uid}\n"
@@ -647,128 +784,278 @@ def mostrar_links_enviados(update, context):
             f"📌 Status: {info.get('status', 'Enviado')}\n\n"
         )
 
-    update.message.reply_text(texto, reply_markup=teclado_professores())
 
-# ================= TEXTO =================
-def receber_texto(update, context):
+    await update.message.reply_text(
+        texto,
+        reply_markup=teclado_professores()
+    )
+
+    # ================= TEXTO =================
+
+async def receber_texto(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
     texto = update.message.text.strip() if update.message.text else ""
+
 
     # Se clicar em qualquer botão do painel, sai do modo de personalização.
     if update.message.from_user.id == ADMIN_ID and eh_botao_admin(texto):
         context.user_data.pop("modo_admin", None)
 
+
     # Botões do painel primeiro.
-    if menu_professores_texto(update, context):
+    if await menu_professores_texto(update, context):
         return
+
 
     # Depois edição em andamento.
-    if processar_personalizacao_admin(update, context):
+    if await processar_personalizacao_admin(update, context):
         return
 
+
     if texto.lower() in ["verificar", "/verificar"]:
-        verificar_usuario(update, context)
+
+        await verificar_usuario(update, context)
+
         return
+
 
     user_id = update.message.from_user.id
     user_key = k(user_id)
 
+
     if user_key not in usuarios:
         return
+
 
     etapa = usuarios[user_key]["etapa"]
 
+
     if etapa == "nome":
+
         usuarios[user_key]["nome"] = texto
         usuarios[user_key]["etapa"] = "idade"
 
-        alunos_entraram_triagem.setdefault(user_key, {
-            "nome": texto,
-            "username": update.message.from_user.username or "Sem usuário",
-            "id": user_id,
-            "status": "Respondendo triagem"
-        })
+
+        alunos_entraram_triagem.setdefault(
+            user_key,
+            {
+                "nome": texto,
+                "username": update.message.from_user.username or "Sem usuário",
+                "id": user_id,
+                "status": "Respondendo triagem"
+            }
+        )
+
+
         alunos_entraram_triagem[user_key]["nome"] = texto
         alunos_entraram_triagem[user_key]["status"] = "Respondendo triagem"
 
+
         salvar_dados()
-        update.message.reply_text("🎂 Agora diga sua idade:")
+
+
+        await update.message.reply_text(
+            "🎂 Agora diga sua idade:"
+        )
+
+
 
     elif etapa == "idade":
+
         usuarios[user_key]["idade"] = texto
         usuarios[user_key]["etapa"] = "q1"
-        alunos_entraram_triagem.setdefault(user_key, {
-            "nome": usuarios[user_key].get("nome", update.message.from_user.first_name),
-            "username": update.message.from_user.username or "Sem usuário",
-            "id": user_id,
-            "status": "Respondendo triagem"
-        })
+
+
+        alunos_entraram_triagem.setdefault(
+            user_key,
+            {
+                "nome": usuarios[user_key].get(
+                    "nome",
+                    update.message.from_user.first_name
+                ),
+                "username": update.message.from_user.username or "Sem usuário",
+                "id": user_id,
+                "status": "Respondendo triagem"
+            }
+        )
+
+
         alunos_entraram_triagem[user_key]["status"] = "Respondendo triagem"
+
+
         salvar_dados()
-        perguntar(context, user_id, 1)
 
 
-def receber_midia(update, context):
+        await perguntar(
+            context,
+            user_id,
+            1
+        )
+
+
+
+async def receber_midia(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
     # Recebe imagem/banner da personalização.
-    if processar_personalizacao_admin(update, context):
+
+    if await processar_personalizacao_admin(update, context):
         return
 
-# ================= PERGUNTAR =================
-def perguntar(context, user_id, num):
+    # ================= PERGUNTAR =================
+
+async def perguntar(
+    context: ContextTypes.DEFAULT_TYPE,
+    user_id,
+    num
+):
+
     keyboard = [
         [
-            InlineKeyboardButton("✅ Sim", callback_data=f"{num}_sim"),
-            InlineKeyboardButton("❌ Não", callback_data=f"{num}_nao")
+            InlineKeyboardButton(
+                "✅ Sim",
+                callback_data=f"{num}_sim"
+            ),
+            InlineKeyboardButton(
+                "❌ Não",
+                callback_data=f"{num}_nao"
+            )
         ]
     ]
 
-    context.bot.send_message(
+
+    await context.bot.send_message(
         chat_id=user_id,
-        text=f"{num}/{len(perguntas)}\n\n{perguntas[num-1]}",
+        text=(
+            f"{num}/{len(perguntas)}\n\n"
+            f"{perguntas[num-1]}"
+        ),
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
+
+
 # ================= RESPOSTAS =================
-def responder(update, context):
+
+async def responder(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
     query = update.callback_query
-    query.answer()
+
+    await query.answer()
+
 
     user_id = query.from_user.id
     user_key = k(user_id)
+
     data = query.data
 
+
     if user_key not in usuarios:
-        usuarios[user_key] = {"etapa": "nome"}
+
+        usuarios[user_key] = {
+            "etapa": "nome"
+        }
+
         salvar_dados()
-        context.bot.send_message(
+
+
+        await context.bot.send_message(
             chat_id=user_id,
-            text="⚠️ Sua triagem foi reiniciada.\n\n✨ Diga seu nome:"
+            text=(
+                "⚠️ Sua triagem foi reiniciada.\n\n"
+                "✨ Diga seu nome:"
+            )
         )
+
         return
 
+
+
     num, resp = data.split("_")
-    usuarios[user_key][f"q{num}"] = "Sim" if resp == "sim" else "Não"
+
+
+    usuarios[user_key][f"q{num}"] = (
+        "Sim"
+        if resp == "sim"
+        else "Não"
+    )
+
+
     usuarios[user_key]["etapa"] = f"q{num}"
 
+
     if user_key in alunos_entraram_triagem:
-        alunos_entraram_triagem[user_key]["status"] = f"Respondendo triagem ({num}/{len(perguntas)})"
+
+        alunos_entraram_triagem[user_key]["status"] = (
+            f"Respondendo triagem "
+            f"({num}/{len(perguntas)})"
+        )
+
 
     salvar_dados()
 
+
     proxima = int(num) + 1
 
+
     if proxima <= len(perguntas):
-        perguntar(context, user_id, proxima)
+
+        await perguntar(
+            context,
+            user_id,
+            proxima
+        )
+
     else:
-        finalizar(context, user_id)
 
-# ================= FICHA =================
-def montar_ficha(user_id, context=None):
+        await finalizar(
+            context,
+            user_id
+        )
+
+    # ================= FICHA =================
+
+def montar_ficha(
+    user_id,
+    context=None
+):
+
     user_key = k(user_id)
-    dados = usuarios.get(user_key, {})
-    nome = dados.get("nome", "Não informado")
-    idade = dados.get("idade", "Não informado")
 
-    perfil_extra = texto_perfil(context, user_id) if context else f"🆔 ID Telegram: {user_id}\n"
+    dados = usuarios.get(
+        user_key,
+        {}
+    )
+
+    nome = dados.get(
+        "nome",
+        "Não informado"
+    )
+
+    idade = dados.get(
+        "idade",
+        "Não informado"
+    )
+
+
+    perfil_extra = (
+        texto_perfil(
+            context,
+            user_id
+        )
+        if context
+        else
+        f"🆔 ID Telegram: {user_id}\n"
+    )
+
 
     texto = (
         f"{NOME_GUARDIA}\n\n"
@@ -779,26 +1066,63 @@ def montar_ficha(user_id, context=None):
         "📌 Status: aguardando avaliação\n"
     )
 
+
     for i in range(1, len(perguntas) + 1):
-        texto += f"\n{i}. {perguntas[i-1]}\nResposta: {dados.get(f'q{i}', 'Não respondeu')}\n"
+
+        texto += (
+            f"\n{i}. {perguntas[i-1]}\n"
+            f"Resposta: {dados.get(f'q{i}', 'Não respondeu')}\n"
+        )
+
 
     return texto
 
 
-def finalizar(context, user_id):
-    user_key = k(user_id)
-    texto = montar_ficha(user_id, context)
 
-    tem_foto, tem_usuario, username = verificar_perfil(context, user_id)
+async def finalizar(
+    context: ContextTypes.DEFAULT_TYPE,
+    user_id
+):
+
+    user_key = k(user_id)
+
+    texto = montar_ficha(
+        user_id,
+        context
+    )
+
+
+    tem_foto, tem_usuario, username = verificar_perfil(
+        context,
+        user_id
+    )
+
 
     if not tem_foto or not tem_usuario:
-        motivos = []
-        if not tem_foto:
-            motivos.append("• Colocar uma imagem/foto no perfil")
-        if not tem_usuario:
-            motivos.append("• Criar ou atualizar seu usuário do Telegram, exemplo: @seunome")
 
-        nome = usuarios.get(user_key, {}).get("nome", str(user_id))
+        motivos = []
+
+
+        if not tem_foto:
+            motivos.append(
+                "• Colocar uma imagem/foto no perfil"
+            )
+
+
+        if not tem_usuario:
+            motivos.append(
+                "• Criar ou atualizar seu usuário do Telegram, exemplo: @seunome"
+            )
+
+
+        nome = usuarios.get(
+            user_key,
+            {}
+        ).get(
+            "nome",
+            str(user_id)
+        )
+
 
         alunos_pendentes[user_key] = {
             "nome": nome,
@@ -807,35 +1131,49 @@ def finalizar(context, user_id):
             "status": "Finalizou a triagem, mas precisa corrigir perfil antes da avaliação"
         }
 
-        fichas_alunos.pop(user_key, None)
+
+        fichas_alunos.pop(
+            user_key,
+            None
+        )
+
 
         if user_key in alunos_entraram_triagem:
-            alunos_entraram_triagem[user_key]["status"] = "Finalizou triagem, mas ficou pendente de perfil"
+
+            alunos_entraram_triagem[user_key]["status"] = (
+                "Finalizou triagem, mas ficou pendente de perfil"
+            )
+
 
         salvar_dados()
 
-        context.bot.send_message(
+
+        await context.bot.send_message(
             chat_id=ADMIN_ID,
             text=(
                 f"{NOME_GUARDIA}\n\n"
                 "⚠️ Uma ficha foi finalizada, mas o aluno ficou em Pendentes por falta de foto/usuário.\n\n"
                 f"👤 Nome: {nome}\n"
                 f"🆔 ID: {user_id}\n\n"
-                "Pendências:\n" + "\n".join(motivos)
+                "Pendências:\n"
+                + "\n".join(motivos)
             )
         )
 
-        context.bot.send_message(
+
+        await context.bot.send_message(
             chat_id=user_id,
             text=(
                 f"{NOME_GUARDIA}\n\n"
                 "⚠️ Sua Triagem Literária foi finalizada, mas antes da avaliação você precisa organizar seu perfil:\n\n"
-                + "\n".join(motivos) +
+                + "\n".join(motivos)
+                +
                 "\n\nAssim que atualizar, volte aqui no PV da Coruja da Biblioteca e envie:\n\n"
                 "/verificar\n\n"
                 "Se não conseguir alterar esses detalhes, mande mensagem no grupo de triagem para que um dos professores/administradores possa te ajudar. ✨"
             )
         )
+
         return
 
     # Fichas dos alunos = somente aguardando aprovação
@@ -1219,27 +1557,739 @@ def menu_callback(update, context):
 
             query.message.reply_text("⚠️ O perfil ainda não está completo:\n\n" + "\n".join(motivos))
 
+# ================= COMANDO VERIFICAR =================
+
+async def verificar_usuario(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    user_id = update.message.from_user.id
+
+    user_key = k(user_id)
+
+    nome = usuarios.get(
+        user_key,
+        {}
+    ).get(
+        "nome",
+        update.message.from_user.first_name
+    )
+
+
+    if (
+        user_key not in alunos_pendentes
+        and user_key not in alunos_liberados
+    ):
+
+        await update.message.reply_text(
+            f"{NOME_GUARDIA}\n\n"
+            "📜 Ainda não encontrei uma aprovação para você.\n\n"
+            "Primeiro faça a Triagem Literária e aguarde a avaliação dos professores."
+        )
+
+        return
+
+
+
+    tem_foto, tem_usuario, username = await verificar_perfil(
+        context,
+        user_id
+    )
+
+
+    if tem_foto and tem_usuario:
+
+
+        await enviar_link_unico(
+            context,
+            user_id,
+            nome,
+            username
+        )
+
+
+        if user_key in alunos_pendentes:
+
+            ficha = alunos_pendentes[user_key].get(
+                "ficha",
+                ficha_do_aluno(user_key)
+            )
+
+
+            alunos_pendentes.pop(
+                user_key,
+                None
+            )
+
+
+            alunos_liberados[user_key] = {
+                "nome": nome,
+                "username": username,
+                "status": "Perfil corrigido, link enviado",
+                "ficha": ficha
+            }
+
+
+            salvar_dados()
+
+
+
+        await context.bot.send_message(
+            chat_id=GRUPO_TRIAGEM_ID,
+            text=(
+                "✨📜 Um aluno organizou seu perfil e foi liberado "
+                "para a Biblioteca de Hogwarts! 🏰📖"
+            )
+        )
+
+
+
+    else:
+
+        pendencias = []
+
+
+        if not tem_foto:
+
+            pendencias.append(
+                "• Colocar uma imagem/foto no perfil"
+            )
+
+
+        if not tem_usuario:
+
+            pendencias.append(
+                "• Criar ou atualizar seu usuário do Telegram, exemplo: @seunome"
+            )
+
+
+        alunos_pendentes[user_key] = {
+
+            "nome": nome,
+
+            "username": username or "Sem usuário",
+
+            "motivos": pendencias,
+
+            "ficha": ficha_do_aluno(user_key),
+
+            "status": "Ainda precisa corrigir perfil"
+        }
+
+
+        salvar_dados()
+
+
+
+        await update.message.reply_text(
+            f"{NOME_GUARDIA}\n\n"
+            "⚠️ Ainda não conseguimos finalizar sua inscrição.\n\n"
+            "Para entrar no grupo oficial Biblioteca de Hogwarts 🏰📖, "
+            "organize estes detalhes:\n\n"
+            + "\n".join(pendencias)
+            +
+            "\n\nAssim que atualizar, volte aqui no PV da Coruja da Biblioteca e envie:\n\n"
+            "/verificar\n\n"
+            "Se não conseguir alterar esses detalhes, mande mensagem no grupo de triagem "
+            "para que um dos professores/administradores possa te ajudar. ✨"
+        )
+
+# ================= DECISÃO =================
+
+async def decisao(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    query = update.callback_query
+
+    await query.answer()
+
+
+    acao, user_id = query.data.split("_")
+
+    user_id = int(user_id)
+
+    user_key = k(user_id)
+
+
+    nome = usuarios.get(
+        user_key,
+        {}
+    ).get(
+        "nome",
+        str(user_id)
+    )
+
+
+    ficha = ficha_do_aluno(user_key)
+
+
+
+    if acao == "aprovar":
+
+
+        tem_foto, tem_usuario, username = await verificar_perfil(
+            context,
+            user_id
+        )
+
+
+        # Sai de Fichas Aguardando
+        fichas_alunos.pop(
+            user_key,
+            None
+        )
+
+
+
+        if not tem_foto or not tem_usuario:
+
+            motivos = []
+
+
+            if not tem_foto:
+                motivos.append(
+                    "• Colocar uma imagem/foto no perfil"
+                )
+
+
+            if not tem_usuario:
+                motivos.append(
+                    "• Criar ou atualizar seu usuário do Telegram, exemplo: @seunome"
+                )
+
+
+
+            alunos_pendentes[user_key] = {
+
+                "nome": nome,
+
+                "username": username or "Sem usuário",
+
+                "motivos": motivos,
+
+                "ficha": ficha,
+
+                "status": "Aprovado, mas pendente de perfil"
+            }
+
+
+            salvar_dados()
+
+
+
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=(
+                    f"{NOME_GUARDIA}\n\n"
+                    "🦉📜 Sua ficha foi aprovada pelos professores!\n\n"
+                    "Mas para finalizar sua inscrição e receber o acesso à Biblioteca de Hogwarts 🏰📖, "
+                    "você precisa atualizar seu perfil:\n\n"
+                    + "\n".join(motivos)
+                    +
+                    "\n\nAssim que atualizar esses detalhes, volte aqui no PV da Coruja da Biblioteca e envie:\n\n"
+                    "/verificar\n\n"
+                    "A Coruja vai conferir novamente e, se estiver tudo certo, enviará o convite único do grupo oficial.\n\n"
+                    "Se você não conseguir trocar esses detalhes, mande mensagem no grupo de triagem "
+                    "para que um dos professores/administradores possa te ajudar. ✨"
+                )
+            )
+
+
+            await query.edit_message_reply_markup(
+                reply_markup=None
+            )
+
+
+            await query.message.reply_text(
+                "⚠️ Aluno movido para Alunos Pendentes."
+            )
+
+            return
+
+
+
+        alunos_liberados[user_key] = {
+
+            "nome": nome,
+
+            "username": username,
+
+            "status": "Aprovado, link enviado",
+
+            "ficha": ficha
+        }
+
+
+
+        salvar_dados()
+
+
+
+        await enviar_link_unico(
+            context,
+            user_id,
+            nome,
+            username
+        )
+
+
+
+        await context.bot.send_message(
+            chat_id=GRUPO_TRIAGEM_ID,
+            text=(
+                "✨📜 Um novo aluno foi aprovado pelos professores!\n\n"
+                "🏰📖 A Biblioteca de Hogwarts acaba de receber mais um membro."
+            )
+        )
+
+
+
+        await query.edit_message_reply_markup(
+            reply_markup=None
+        )
+
+
+        await query.message.reply_text(
+            "✅ Aluno movido para Aprovados e convite único enviado."
+        )
+
+
+
+    else:
+
+
+        # Sai de Fichas Aguardando
+        fichas_alunos.pop(
+            user_key,
+            None
+        )
+
+
+        alunos_reprovados[user_key] = {
+
+            "nome": nome,
+
+            "status": "Reprovado",
+
+            "ficha": ficha
+        }
+
+
+
+        salvar_dados()
+
+
+
+        await context.bot.send_message(
+            chat_id=user_id,
+            text=(
+                "❌ Sua entrada não foi aprovada no momento.\n\n"
+                "Agradecemos por responder a Triagem Literária."
+            )
+        )
+
+
+
+        await query.edit_message_reply_markup(
+            reply_markup=None
+        )
+
+
+        await query.message.reply_text(
+            "❌ Aluno movido para Reprovados."
+        )
+
+# ================= CALLBACK MENUS =================
+
+async def menu_callback(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    query = update.callback_query
+
+    await query.answer()
+
+
+    if query.from_user.id != ADMIN_ID:
+        return
+
+
+    data = query.data
+
+
+
+    if data == "menu_fichas":
+
+        if not fichas_alunos:
+
+            await query.message.reply_text(
+                "📜 Nenhuma ficha aguardando avaliação."
+            )
+
+            return
+
+
+        keyboard = []
+
+
+        for uid in fichas_alunos:
+
+            nome = usuarios.get(
+                uid,
+                {}
+            ).get(
+                "nome",
+                str(uid)
+            )
+
+
+            keyboard.append([
+                InlineKeyboardButton(
+                    f"👤 {nome}",
+                    callback_data=f"ver_ficha_{uid}"
+                )
+            ])
+
+
+        await query.message.reply_text(
+            "📜 Fichas Aguardando:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+
+
+    elif data.startswith("ver_ficha_"):
+
+        uid = data.replace(
+            "ver_ficha_",
+            ""
+        )
+
+
+        ficha = fichas_alunos.get(
+            uid,
+            "Ficha não encontrada."
+        )
+
+
+        keyboard = [[
+
+            InlineKeyboardButton(
+                "✅ Aprovar",
+                callback_data=f"aprovar_{uid}"
+            ),
+
+            InlineKeyboardButton(
+                "❌ Reprovar",
+                callback_data=f"reprovar_{uid}"
+            )
+
+        ]]
+
+
+        await query.message.reply_text(
+            ficha,
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+
+
+    elif data.startswith("ver_aprovado_"):
+
+        uid = data.replace(
+            "ver_aprovado_",
+            ""
+        )
+
+
+        await query.message.reply_text(
+            alunos_liberados.get(
+                uid,
+                {}
+            ).get(
+                "ficha",
+                "Ficha não encontrada."
+            )
+        )
+
+
+
+    elif data.startswith("ver_reprovado_"):
+
+        uid = data.replace(
+            "ver_reprovado_",
+            ""
+        )
+
+
+        await query.message.reply_text(
+            alunos_reprovados.get(
+                uid,
+                {}
+            ).get(
+                "ficha",
+                "Ficha não encontrada."
+            )
+        )
+
+
+
+    elif data.startswith("ver_pendente_"):
+
+        uid = data.replace(
+            "ver_pendente_",
+            ""
+        )
+
+
+        item = alunos_pendentes.get(uid)
+
+
+        if not item:
+
+            await query.message.reply_text(
+                "Esse aluno não está mais pendente."
+            )
+
+            return
+
+
+
+        motivos = "\n".join(
+            item["motivos"]
+        )
+
+
+        username = (
+            item.get("username")
+            or usuarios.get(uid, {}).get("username")
+            or "Sem usuário"
+        )
+
+
+        if (
+            username != "Sem usuário"
+            and not str(username).startswith("@")
+        ):
+            username = "@" + str(username)
+
+
+        perfil = f"tg://user?id={uid}"
+
+
+        keyboard = [
+
+            [
+                InlineKeyboardButton(
+                    "🔄 Verificar novamente",
+                    callback_data=f"reverificar_{uid}"
+                )
+            ],
+
+            [
+                InlineKeyboardButton(
+                    "✅ Liberar mesmo com pendência",
+                    callback_data=f"liberar_forcado_{uid}"
+                )
+            ]
+
+        ]
+
+
+        await query.message.reply_text(
+
+            f"⚠️ Aluno Pendente\n\n"
+            f"👤 {item.get('nome', uid)}\n"
+            f"🆔 ID: {uid}\n"
+            f"🔗 Usuário: {username}\n"
+            f"👁 Perfil: {perfil}\n\n"
+            f"Pendências:\n{motivos}",
+
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+
+
+    elif data.startswith("liberar_forcado_"):
+
+        uid = data.replace(
+            "liberar_forcado_",
+            ""
+        )
+
+
+        nome = usuarios.get(
+            uid,
+            {}
+        ).get(
+            "nome",
+            alunos_pendentes.get(uid, {}).get(
+                "nome",
+                str(uid)
+            )
+        )
+
+
+        try:
+
+            chat = await context.bot.get_chat(
+                int(uid)
+            )
+
+            username = chat.username or "Sem usuário"
+
+
+        except Exception:
+
+            username = "Sem usuário"
+
+
+
+        ficha = alunos_pendentes.get(
+            uid,
+            {}
+        ).get(
+            "ficha",
+            ficha_do_aluno(uid)
+        )
+
+
+        alunos_pendentes.pop(
+            uid,
+            None
+        )
+
+
+        alunos_liberados[uid] = {
+
+            "nome": nome,
+
+            "username": username,
+
+            "status": "Liberado manualmente pela professora, mesmo com pendência",
+
+            "ficha": ficha
+
+        }
+
+
+        salvar_dados()
+
+
+
+        await enviar_link_unico(
+            context,
+            int(uid),
+            nome,
+            username
+        )
+
+
+        await query.message.reply_text(
+            "✅ Aluno liberado manualmente.\n\n"
+            "A Coruja enviou o convite único no PV do aluno."
+        )
+
+
 # ================= MAIN =================
+
 def main():
+
     carregar_dados()
 
-    updater = Updater(TOKEN, use_context=True)
-    dp = updater.dispatcher
 
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CommandHandler("verificar", verificar_usuario))
+    application = Application.builder().token(TOKEN).build()
 
-    dp.add_handler(MessageHandler(Filters.status_update.new_chat_members, novo_membro))
-    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, receber_texto))
-    dp.add_handler(MessageHandler(Filters.photo, receber_midia))
 
-    dp.add_handler(CallbackQueryHandler(menu_callback, pattern=r"menu_|ver_ficha_|ver_pendente_|reverificar_|liberar_forcado_|ver_aprovado_|ver_reprovado_"))
-    dp.add_handler(CallbackQueryHandler(responder, pattern=r"\d+_(sim|nao)"))
-    dp.add_handler(CallbackQueryHandler(decisao, pattern=r"(aprovar|reprovar)_"))
 
-    print("🦉 Coruja da Biblioteca rodando com fichas organizadas por setor...")
-    updater.start_polling()
-    updater.idle()
+    application.add_handler(
+        CommandHandler(
+            "start",
+            start
+        )
+    )
+
+
+    application.add_handler(
+        CommandHandler(
+            "verificar",
+            verificar_usuario
+        )
+    )
+
+
+
+    application.add_handler(
+        MessageHandler(
+            filters.StatusUpdate.NEW_CHAT_MEMBERS,
+            novo_membro
+        )
+    )
+
+
+    application.add_handler(
+        MessageHandler(
+            filters.TEXT & ~filters.COMMAND,
+            receber_texto
+        )
+    )
+
+
+    application.add_handler(
+        MessageHandler(
+            filters.PHOTO,
+            receber_midia
+        )
+    )
+
+
+
+    application.add_handler(
+        CallbackQueryHandler(
+            menu_callback,
+            pattern=(
+                r"menu_|"
+                r"ver_ficha_|"
+                r"ver_pendente_|"
+                r"reverificar_|"
+                r"liberar_forcado_|"
+                r"ver_aprovado_|"
+                r"ver_reprovado_"
+            )
+        )
+    )
+
+
+
+    application.add_handler(
+        CallbackQueryHandler(
+            responder,
+            pattern=r"\d+_(sim|nao)"
+        )
+    )
+
+
+
+    application.add_handler(
+        CallbackQueryHandler(
+            decisao,
+            pattern=r"(aprovar|reprovar)_"
+        )
+    )
+
+
+
+    print(
+        "🦉 Coruja da Biblioteca rodando com fichas organizadas por setor..."
+    )
+
+
+    application.run_polling()
+
 
 
 if __name__ == "__main__":
