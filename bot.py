@@ -884,17 +884,7 @@ async def receber_texto(
     texto = update.message.text.strip() if update.message.text else ""
 
 
-    # Se clicar em qualquer botão do painel, sai do modo de personalização.
-    if update.message.from_user.id == ADMIN_ID and eh_botao_admin(texto):
-        context.user_data.pop("modo_admin", None)
-
-
-    # Botões do painel primeiro.
-    if await menu_professores_texto(update, context):
-        return
-
-
-    # Depois edição em andamento.
+    # Personalização somente para o administrador
     if await processar_personalizacao_admin(update, context):
         return
 
