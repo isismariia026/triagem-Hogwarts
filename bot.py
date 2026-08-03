@@ -867,7 +867,7 @@ def verificar_perfil(context, user_id):
 def criar_link_unico(context):
     link = context.bot.create_chat_invite_link(
         chat_id=GRUPO_OFICIAL_ID,
-        member_limit=1
+        creates_join_request=True
     )
     return link.invite_link
 
