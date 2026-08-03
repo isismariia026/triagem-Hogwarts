@@ -1,7 +1,23 @@
 import json
 import os
-from telegram import *
-from telegram.ext import *
+import asyncio
+
+from telegram import (
+    Update,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    ReplyKeyboardMarkup,
+)
+
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    MessageHandler,
+    CallbackQueryHandler,
+    ChatJoinRequestHandler,
+    ContextTypes,
+    filters,
+)
 
 # ================= CONFIG =================
 TOKEN = os.getenv("BOT_TOKEN")
