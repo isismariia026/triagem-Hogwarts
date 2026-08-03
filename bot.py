@@ -273,6 +273,18 @@ def teclado_professores():
         resize_keyboard=True
     )
 
+def teclado_personalizar():
+    return ReplyKeyboardMarkup(
+        [
+            ["🖼 Alterar imagem do acesso"],
+            ["✏️ Alterar mensagem do acesso"],
+            ["🔘 Alterar texto do botão"],
+            ["👁 Visualizar acesso"],
+            ["🔙 Voltar"]
+        ],
+        resize_keyboard=True
+    )
+
 # ================= START =================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
