@@ -4,12 +4,12 @@ from telegram import *
 from telegram.ext import *
 
 # ================= CONFIG =================
-TOKEN = "8505235474:AAGtB8PkMMS0VFPxl0gIDK9Po8mUXmJbWTU"
+TOKEN = os.getenv("BOT_TOKEN")
 
-ADMIN_ID = 1130170420
+ADMIN_ID = 8672397104
 
 # IDs que podem refazer a triagem para testes
-IDS_TESTE = [8672397104, 8450100073]
+IDS_TESTE = [8450100073]
 
 GRUPO_TRIAGEM_ID = -1003827066177
 GRUPO_OFICIAL_ID = -1003553956365
