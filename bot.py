@@ -599,13 +599,10 @@ async def mostrar_lista_fichas(
 ):
 
     if not fichas_alunos:
-        await update.message.reply_text(
-            "📜 Nenhuma ficha aguardando avaliação.\n\n"
-            "Aqui só aparecem alunos que finalizaram a triagem e ainda não foram aprovados/reprovados.",
-            reply_markup=teclado_professores()
+        await query.message.reply_text(
+            "📜 Nenhuma ficha aguardando avaliação."
         )
         return
-
 
     keyboard = []
 
