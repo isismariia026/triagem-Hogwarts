@@ -599,7 +599,7 @@ async def mostrar_lista_fichas(
 ):
 
     if not fichas_alunos:
-        await query.message.reply_text(
+        await update.message.reply_text(
             "📜 Nenhuma ficha aguardando avaliação."
         )
         return
@@ -1514,7 +1514,7 @@ async def decisao(
             reply_markup=None
         )
         await query.message.reply_text(("✅ Aluno movido para Aprovados e convite único enviado.")
-
+        )
     else:
         # Sai de Fichas Aguardando
         fichas_alunos.pop(user_key, None)
@@ -1538,7 +1538,9 @@ async def decisao(
         await query.edit_message_reply_markup(
             reply_markup=None
         )
-        await query.message.reply_text(("❌ Aluno movido para Reprovados.")
+        await query.message.reply_text(
+            "❌ Aluno movido para Reprovados."
+        )
 
 # ================= CALLBACK MENUS =================
 async def menu_callback(
@@ -1705,11 +1707,6 @@ async def menu_callback(
 
 # ================= COMANDO VERIFICAR =================
 
-async def verificar_usuario(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
-
     user_id = update.message.from_user.id
 
     user_key = k(user_id)
@@ -1842,11 +1839,6 @@ async def verificar_usuario(
         )
 
 # ================= DECISÃO =================
-
-async def decisao(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
 
     query = update.callback_query
 
@@ -2049,12 +2041,7 @@ async def decisao(
         )
 
 # ================= CALLBACK MENUS =================
-
-async def menu_callback(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
-
+    
     query = update.callback_query
 
     await query.answer()
