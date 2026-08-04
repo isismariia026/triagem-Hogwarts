@@ -353,7 +353,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ================= NOVO MEMBRO NA TRIAGEM / OFICIAL =================
 async def novo_membro(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    chat_id = update.message.chat_id
+    chat_id = update.effective_chat.id
 
     if chat_id == GRUPO_TRIAGEM_ID:
 
@@ -1260,7 +1260,7 @@ async def finalizar(
         InlineKeyboardButton("📜 Abrir Fichas Aguardando", callback_data="menu_fichas")
     ]]
 
-    context.bot.send_message(
+    await context.bot.send_message(
         chat_id=ADMIN_ID,
         text=(
             f"{NOME_GUARDIA}\n\n"
@@ -1270,7 +1270,7 @@ async def finalizar(
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-    context.bot.send_message(
+    await context.bot.send_message(
         chat_id=user_id,
         text=(
             "🔮✨ Sua Triagem Literária foi enviada para análise.\n\n"
@@ -1300,23 +1300,30 @@ async def verificar_perfil(context, user_id):
     return tem_foto, tem_usuario, username
 
 
-def criar_link_unico(context):
-    link = context.bot.create_chat_invite_link(
+async def criar_link_unico(context):
+
+    link = await context.bot.create_chat_invite_link(
         chat_id=GRUPO_OFICIAL_ID,
         creates_join_request=True
     )
+
     return link.invite_link
 
 
-def enviar_link_unico(context, user_id, nome, username):
+async def enviar_link_unico(
+    context,
+    user_id,
+    nome,
+    username
+):
     user_key = k(user_id)
-    link = criar_link_unico(context)
+    link = await criar_link_unico(context)
 
     keyboard = [[InlineKeyboardButton(config_acesso["texto_botao"], url=link)]]
     texto = f"{NOME_GUARDIA}\n\n{config_acesso['mensagem']}"
 
     if config_acesso.get("imagem_file_id"):
-        msg = context.bot.send_photo(
+        msg = await context.bot.send_photo(
             chat_id=user_id,
             photo=config_acesso["imagem_file_id"],
             caption=texto,
@@ -1324,7 +1331,7 @@ def enviar_link_unico(context, user_id, nome, username):
             protect_content=True
         )
     else:
-        msg = context.bot.send_message(
+        msg = await context.bot.send_message(
             chat_id=user_id,
             text=texto,
             reply_markup=InlineKeyboardMarkup(keyboard),
@@ -1342,13 +1349,25 @@ def enviar_link_unico(context, user_id, nome, username):
     salvar_dados()
 
 # ================= COMANDO VERIFICAR =================
-def verificar_usuario(update, context):
+async def verificar_usuario(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
     user_id = update.message.from_user.id
     user_key = k(user_id)
-    nome = usuarios.get(user_key, {}).get("nome", update.message.from_user.first_name)
+
+    nome = usuarios.get(
+        user_key,
+        {}
+    ).get(
+        "nome",
+        update.message.from_user.first_name
+    )
 
     if user_key not in alunos_pendentes and user_key not in alunos_liberados:
-        update.message.reply_text(
+
+        await update.message.reply_text(
             f"{NOME_GUARDIA}\n\n"
             "📜 Ainda não encontrei uma aprovação para você.\n\n"
             "Primeiro faça a Triagem Literária e aguarde a avaliação dos professores."
@@ -1358,7 +1377,12 @@ def verificar_usuario(update, context):
     tem_foto, tem_usuario, username = await verificar_perfil(context, user_id)
 
     if tem_foto and tem_usuario:
-        enviar_link_unico(context, user_id, nome, username)
+        await enviar_link_unico(
+            context,
+            user_id,
+            nome,
+            username
+        )
 
         if user_key in alunos_pendentes:
             ficha = alunos_pendentes[user_key].get("ficha", ficha_do_aluno(user_key))
@@ -1371,7 +1395,7 @@ def verificar_usuario(update, context):
             }
             salvar_dados()
 
-        context.bot.send_message(
+        await context.bot.send_message(
             chat_id=GRUPO_TRIAGEM_ID,
             text=(
                 "✨📜 Um aluno organizou seu perfil e foi liberado para a Biblioteca de Hogwarts! 🏰📖"
@@ -1395,7 +1419,7 @@ def verificar_usuario(update, context):
         }
         salvar_dados()
 
-        update.message.reply_text(
+        await update.message.reply_text(
             f"{NOME_GUARDIA}\n\n"
             "⚠️ Ainda não conseguimos finalizar sua inscrição.\n\n"
             "Para entrar no grupo oficial Biblioteca de Hogwarts 🏰📖, organize estes detalhes:\n\n"
@@ -1407,9 +1431,12 @@ def verificar_usuario(update, context):
         )
 
 # ================= DECISÃO =================
-def decisao(update, context):
+async def decisao(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
     query = update.callback_query
-    query.answer()
+    await query.answer()
 
     acao, user_id = query.data.split("_")
     user_id = int(user_id)
@@ -1443,7 +1470,7 @@ def decisao(update, context):
 
             salvar_dados()
 
-            context.bot.send_message(
+            await context.bot.send_message(
                 chat_id=user_id,
                 text=(
                     f"{NOME_GUARDIA}\n\n"
@@ -1459,8 +1486,10 @@ def decisao(update, context):
                 )
             )
 
-            query.edit_message_reply_markup(reply_markup=None)
-            query.message.reply_text("⚠️ Aluno movido para Alunos Pendentes.")
+            await query.edit_message_reply_markup(
+                reply_markup=None
+            )
+            await query.message.reply_text("⚠️ Aluno movido para Alunos Pendentes.")
             return
 
         alunos_liberados[user_key] = {
@@ -1471,7 +1500,12 @@ def decisao(update, context):
         }
 
         salvar_dados()
-        enviar_link_unico(context, user_id, nome, username)
+        await enviar_link_unico(
+            context,
+            user_id,
+            nome,
+            username
+        )
 
         context.bot.send_message(
             chat_id=GRUPO_TRIAGEM_ID,
@@ -1508,9 +1542,12 @@ def decisao(update, context):
         query.message.reply_text("❌ Aluno movido para Reprovados.")
 
 # ================= CALLBACK MENUS =================
-def menu_callback(update, context):
+async def menu_callback(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
     query = update.callback_query
-    query.answer()
+    await query.answer()
 
     if query.from_user.id != ADMIN_ID:
         return
@@ -1519,15 +1556,15 @@ def menu_callback(update, context):
 
     if data == "menu_fichas":
         if not fichas_alunos:
-            query.message.reply_text("📜 Nenhuma ficha aguardando avaliação.")
-            return
+        await query.message.reply_text("📜 Nenhuma ficha aguardando avaliação.")
+        return
 
         keyboard = []
         for uid in fichas_alunos:
             nome = usuarios.get(uid, {}).get("nome", str(uid))
             keyboard.append([InlineKeyboardButton(f"👤 {nome}", callback_data=f"ver_ficha_{uid}")])
 
-        query.message.reply_text("📜 Fichas Aguardando:", reply_markup=InlineKeyboardMarkup(keyboard))
+        await query.message.reply_text("📜 Fichas Aguardando:", reply_markup=InlineKeyboardMarkup(keyboard))
 
     elif data.startswith("ver_ficha_"):
         uid = data.replace("ver_ficha_", "")
@@ -1538,22 +1575,29 @@ def menu_callback(update, context):
             InlineKeyboardButton("❌ Reprovar", callback_data=f"reprovar_{uid}")
         ]]
 
-        query.message.reply_text(ficha, reply_markup=InlineKeyboardMarkup(keyboard))
+        await query.message.reply_text(
+            ficha,
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
 
     elif data.startswith("ver_aprovado_"):
         uid = data.replace("ver_aprovado_", "")
-        query.message.reply_text(alunos_liberados.get(uid, {}).get("ficha", "Ficha não encontrada."))
+        await query.message.reply_text(
+            alunos_liberados.get(uid, {}).get("ficha", "Ficha não encontrada.")
+        )
 
     elif data.startswith("ver_reprovado_"):
         uid = data.replace("ver_reprovado_", "")
-        query.message.reply_text(alunos_reprovados.get(uid, {}).get("ficha", "Ficha não encontrada."))
+        await query.message.reply_text(
+            alunos_reprovados.get(uid, {}).get("ficha", "Ficha não encontrada.")
+        )
 
     elif data.startswith("ver_pendente_"):
         uid = data.replace("ver_pendente_", "")
         item = alunos_pendentes.get(uid)
 
         if not item:
-            query.message.reply_text("Esse aluno não está mais pendente.")
+            await query.message.reply_text("Esse aluno não está mais pendente.")
             return
 
         motivos = "\n".join(item["motivos"])
@@ -1569,7 +1613,7 @@ def menu_callback(update, context):
             [InlineKeyboardButton("✅ Liberar mesmo com pendência", callback_data=f"liberar_forcado_{uid}")]
         ]
 
-        query.message.reply_text(
+        await query.message.reply_text(
             f"⚠️ Aluno Pendente\n\n"
             f"👤 {item.get('nome', uid)}\n"
             f"🆔 ID: {uid}\n"
@@ -1584,7 +1628,7 @@ def menu_callback(update, context):
         nome = usuarios.get(uid, {}).get("nome", alunos_pendentes.get(uid, {}).get("nome", str(uid)))
 
         try:
-            chat = context.bot.get_chat(int(uid))
+            chat = await context.bot.get_chat(int(uid))
             username = chat.username or "Sem usuário"
         except Exception:
             username = "Sem usuário"
@@ -1600,9 +1644,14 @@ def menu_callback(update, context):
         }
         salvar_dados()
 
-        enviar_link_unico(context, int(uid), nome, username)
+        await enviar_link_unico(
+            context,
+            int(uid),
+            nome,
+            username
+        )
 
-        query.message.reply_text(
+        await query.message.reply_text(
             "✅ Aluno liberado manualmente.\n\n"
             "A Coruja enviou o convite único no PV do aluno."
         )
@@ -1611,7 +1660,10 @@ def menu_callback(update, context):
         uid = data.replace("reverificar_", "")
         nome = usuarios.get(uid, {}).get("nome", str(uid))
 
-        tem_foto, tem_usuario, username = await verificar_perfil(context, int(uid))
+        tem_foto, tem_usuario, username = await verificar_perfil(
+            context,
+            int(uid)
+        )
 
         if tem_foto and tem_usuario:
             ficha = alunos_pendentes.get(uid, {}).get("ficha", ficha_do_aluno(uid))
@@ -1623,8 +1675,13 @@ def menu_callback(update, context):
                 "ficha": ficha
             }
             salvar_dados()
-            enviar_link_unico(context, int(uid), nome, username)
-            query.message.reply_text("✅ Perfil corrigido. Aluno movido para Aprovados e convite único enviado.")
+            await enviar_link_unico(
+                context,
+                int(uid),
+                nome,
+                username
+            )
+            await query.message.reply_text("✅ Perfil corrigido. Aluno movido para Aprovados e convite único enviado.")
         else:
             motivos = []
 
@@ -1637,7 +1694,10 @@ def menu_callback(update, context):
             alunos_pendentes[uid]["motivos"] = motivos
             salvar_dados()
 
-            query.message.reply_text("⚠️ O perfil ainda não está completo:\n\n" + "\n".join(motivos))
+            await query.message.reply_text(
+                "⚠️ O perfil ainda não está completo:\n\n"
+                + "\n".join(motivos)
+            )
 
 # ================= COMANDO VERIFICAR =================
 
