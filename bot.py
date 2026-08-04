@@ -1502,7 +1502,7 @@ async def decisao(
             username
         )
 
-        context.bot.send_message(
+        await context.bot.send_message(
             chat_id=GRUPO_TRIAGEM_ID,
             text=(
                 "✨📜 Um novo aluno foi aprovado pelos professores!\n\n"
@@ -1510,8 +1510,10 @@ async def decisao(
             )
         )
 
-        query.edit_message_reply_markup(reply_markup=None)
-        query.message.reply_text("✅ Aluno movido para Aprovados e convite único enviado.")
+        await query.edit_message_reply_markup(
+            reply_markup=None
+        )
+        await query.message.reply_text(("✅ Aluno movido para Aprovados e convite único enviado.")
 
     else:
         # Sai de Fichas Aguardando
@@ -1525,7 +1527,7 @@ async def decisao(
 
         salvar_dados()
 
-        context.bot.send_message(
+        await context.bot.send_message(
             chat_id=user_id,
             text=(
                 "❌ Sua entrada não foi aprovada no momento.\n\n"
@@ -1533,8 +1535,10 @@ async def decisao(
             )
         )
 
-        query.edit_message_reply_markup(reply_markup=None)
-        query.message.reply_text("❌ Aluno movido para Reprovados.")
+        await query.edit_message_reply_markup(
+            reply_markup=None
+        )
+        await query.message.reply_text(("❌ Aluno movido para Reprovados.")
 
 # ================= CALLBACK MENUS =================
 async def menu_callback(
@@ -1550,9 +1554,14 @@ async def menu_callback(
     data = query.data
 
     if data == "menu_fichas":
+
         if not fichas_alunos:
-        await query.message.reply_text("📜 Nenhuma ficha aguardando avaliação.")
-        return
+
+            await query.message.reply_text(
+                "📜 Nenhuma ficha aguardando avaliação."
+            )
+
+            return
 
         keyboard = []
         for uid in fichas_alunos:
