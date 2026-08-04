@@ -268,7 +268,7 @@ def teclado_professores():
         ]
     ]
 
-    return CallbackQueryHandler(
+    return ReplyKeyboardMarkup(
         teclado,
         resize_keyboard=True
     )
