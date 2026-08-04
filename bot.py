@@ -1120,8 +1120,7 @@ async def montar_ficha(
     )
 
 
-    perfil_extra = (
-        await texto_perfil(
+    perfil_extra = await texto_perfil(
             context,
             user_id
         )
