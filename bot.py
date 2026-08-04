@@ -2343,9 +2343,7 @@ def main():
 
     carregar_dados()
 
-
     application = Application.builder().token(TOKEN).build()
-
 
 
     application.add_handler(
@@ -2362,7 +2360,6 @@ def main():
             verificar_usuario
         )
     )
-
 
 
     application.add_handler(
@@ -2389,7 +2386,6 @@ def main():
     )
 
 
-
     application.add_handler(
         CallbackQueryHandler(
             menu_callback,
@@ -2406,14 +2402,12 @@ def main():
     )
 
 
-
     application.add_handler(
         CallbackQueryHandler(
             responder,
             pattern=r"\d+_(sim|nao)"
         )
     )
-
 
 
     application.add_handler(
@@ -2424,14 +2418,18 @@ def main():
     )
 
 
-
     print(
         "🦉 Coruja da Biblioteca rodando com fichas organizadas por setor..."
     )
 
 
-    application.run_polling()
-
+    application.run_polling(
+        allowed_updates=[
+            "message",
+            "callback_query",
+            "chat_member"
+        ]
+    )
 
 
 if __name__ == "__main__":
