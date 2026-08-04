@@ -268,7 +268,7 @@ def teclado_professores():
         ]
     ]
 
-    return ReplyKeyboardMarkup(
+    return CallbackQueryHandler(
         teclado,
         resize_keyboard=True
     )
@@ -877,6 +877,24 @@ async def receber_texto(
 ):
 
     texto = update.message.text.strip() if update.message.text else ""
+
+# ================= BLOQUEAR MENU DO PROFESSOR =================
+
+    if update.message.from_user.id == ADMIN_ID:
+
+        comandos_professor = [
+            "📜 Fichas Aguardando",
+            "⚠️ Alunos Pendentes",
+            "✅ Alunos Aprovados",
+            "❌ Alunos Reprovados",
+            "🧍 Entraram na Triagem",
+            "🏰 Entraram no Oficial",
+            "🔗 Links Enviados",
+            "⚙️ Personalizar Acesso"
+        ]
+
+        if texto in comandos_professor:
+            return
 
 
     # Personalização somente para o administrador
