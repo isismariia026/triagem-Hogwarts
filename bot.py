@@ -994,6 +994,45 @@ async def receber_midia(
     if await processar_personalizacao_admin(update, context):
         return
 
+    # ================= MENU DOS PROFESSORES =================
+
+    if update.message.from_user.id == ADMIN_ID:
+
+        if texto == "📜 Fichas Aguardando":
+            await mostrar_lista_fichas(update, context)
+            return
+
+        elif texto == "⚠️ Alunos Pendentes":
+            await mostrar_pendentes(update, context)
+            return
+
+        elif texto == "✅ Alunos Aprovados":
+            await mostrar_liberados(update, context)
+            return
+
+        elif texto == "❌ Alunos Reprovados":
+            await mostrar_reprovados(update, context)
+            return
+
+        elif texto == "🧍 Entraram na Triagem":
+            await mostrar_entradas_triagem(update, context)
+            return
+
+        elif texto == "🏰 Entraram no Oficial":
+            await mostrar_entraram_oficial(update, context)
+            return
+
+        elif texto == "🔗 Links Enviados":
+            await mostrar_links_enviados(update, context)
+            return
+
+        elif texto == "⚙️ Personalizar Acesso":
+            await update.message.reply_text(
+                "⚙️ Personalização do acesso:",
+                reply_markup=teclado_personalizar()
+            )
+            return
+
     # ================= PERGUNTAR =================
 
 async def perguntar(
