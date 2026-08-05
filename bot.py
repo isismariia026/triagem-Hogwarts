@@ -2445,6 +2445,7 @@ def main():
                 r"liberar_forcado_|"
                 r"ver_aprovado_|"
                 r"ver_reprovado_"
+                r"personalizar_"
             )
         )
     )
