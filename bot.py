@@ -1104,10 +1104,35 @@ async def receber_midia(
     context: ContextTypes.DEFAULT_TYPE
 ):
 
-    # Recebe imagem/banner da personalização.
+    # ================= PERSONALIZAÇÃO DA IMAGEM =================
 
-    if await processar_personalizacao_admin(update, context):
+    if update.message.from_user.id != ADMIN_ID:
         return
+
+    modo = context.user_data.get("modo_admin")
+
+    if modo != "alterar_imagem_acesso":
+        return
+
+    if not update.message.photo:
+        return
+
+    config_acesso["imagem_file_id"] = (
+        update.message.photo[-1].file_id
+    )
+
+    salvar_dados()
+
+    context.user_data.pop(
+        "modo_admin",
+        None
+    )
+
+    await update.message.reply_text(
+        "✅🖼️ Imagem do acesso atualizada com sucesso!\n\n"
+        "Essa será a imagem enviada aos alunos aprovados.",
+        reply_markup=teclado_personalizar()
+    )
 
     # ================= MENU DOS PROFESSORES =================
 
@@ -1142,9 +1167,68 @@ async def receber_midia(
             return
 
         elif texto == "⚙️ Personalizar Acesso":
+            context.user_data.pop("modo_admin", None)
+
             await update.message.reply_text(
-                "⚙️ Personalização do acesso:",
+                "⚙️ Personalização do acesso:\n\n"
+                "Aqui você pode configurar exatamente como o acesso "
+                "será enviado para os alunos aprovados.",
                 reply_markup=teclado_personalizar()
+            )
+            return
+
+        elif texto == "🖼 Alterar imagem do acesso":
+            context.user_data["modo_admin"] = "alterar_imagem_acesso"
+
+            await update.message.reply_text(
+                "🖼️ Alterar imagem do acesso\n\n"
+                "Envie agora a imagem que deseja usar no acesso.\n\n"
+                "📌 A imagem será enviada junto com a mensagem "
+                "para todos os alunos aprovados.\n\n"
+                "Se quiser remover a imagem atual, envie:\n"
+                "remover",
+                reply_markup=teclado_personalizar()
+            )
+            return
+
+        elif texto == "✏️ Alterar mensagem do acesso":
+            context.user_data["modo_admin"] = "alterar_mensagem_acesso"
+
+            await update.message.reply_text(
+                "✏️ Alterar mensagem do acesso\n\n"
+                "Envie agora o texto que deseja que o aluno receba "
+                "quando for aprovado.\n\n"
+                "💡 Você pode usar emojis e várias linhas.",
+                reply_markup=teclado_personalizar()
+            )
+            return
+
+        elif texto == "🔘 Alterar texto do botão":
+            context.user_data["modo_admin"] = "alterar_botao_acesso"
+
+            await update.message.reply_text(
+                "🔘 Alterar texto do botão\n\n"
+                "Envie agora o texto que aparecerá no botão "
+                "de entrada da Biblioteca.",
+                reply_markup=teclado_personalizar()
+            return
+
+        elif texto == "👁 Visualizar acesso":
+            context.user_data.pop("modo_admin", None)
+
+            await enviar_preview_acesso(
+                update,
+                context
+            )
+
+            return
+
+        elif texto == "🔙 Voltar":
+            context.user_data.pop("modo_admin", None)
+
+            await update.message.reply_text(
+                "🏰✨ Voltamos para a Sala dos Professores.",
+                reply_markup=teclado_professores()
             )
             return
 
