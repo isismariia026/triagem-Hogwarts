@@ -1211,6 +1211,7 @@ async def receber_midia(
                 "Envie agora o texto que aparecerá no botão "
                 "de entrada da Biblioteca.",
                 reply_markup=teclado_personalizar()
+            )    
             return
 
         elif texto == "👁 Visualizar acesso":
