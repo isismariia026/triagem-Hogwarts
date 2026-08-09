@@ -869,14 +869,129 @@ async def mostrar_links_enviados(
         reply_markup=teclado_professores()
     )
 
-    # ================= TEXTO =================
-
+   # ================= TEXTO =================
 async def receber_texto(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
 
     texto = update.message.text.strip() if update.message.text else ""
+
+    # ================= MENU DOS PROFESSORES =================
+
+    if update.message.from_user.id == ADMIN_ID:
+
+        if texto == "📜 Fichas Aguardando":
+            await mostrar_lista_fichas(update, context)
+            return
+
+        elif texto == "⚠️ Alunos Pendentes":
+            await mostrar_pendentes(update, context)
+            return
+
+        elif texto == "✅ Alunos Aprovados":
+            await mostrar_liberados(update, context)
+            return
+
+        elif texto == "❌ Alunos Reprovados":
+            await mostrar_reprovados(update, context)
+            return
+
+        elif texto == "🧍 Entraram na Triagem":
+            await mostrar_entradas_triagem(update, context)
+            return
+
+        elif texto == "🏰 Entraram no Oficial":
+            await mostrar_entraram_oficial(update, context)
+            return
+
+        elif texto == "🔗 Links Enviados":
+            await mostrar_links_enviados(update, context)
+            return
+
+        elif texto == "⚙️ Personalizar Acesso":
+            await update.message.reply_text(
+                "⚙️ Personalização do acesso:",
+                reply_markup=teclado_personalizar()
+            )
+            return
+
+    # ================= PERSONALIZAÇÃO =================
+
+    if await processar_personalizacao_admin(update, context):
+        return
+
+    # ================= VERIFICAR =================
+
+    if texto.lower() in ["verificar", "/verificar"]:
+        await verificar_usuario(update, context)
+        return
+
+    # ================= TRIAGEM =================
+
+    user_id = update.message.from_user.id
+    user_key = k(user_id)
+
+    if user_key not in usuarios:
+        return
+
+    etapa = usuarios[user_key]["etapa"]
+
+    # ================= NOME =================
+
+    if etapa == "nome":
+
+        usuarios[user_key]["nome"] = texto
+        usuarios[user_key]["etapa"] = "idade"
+
+        alunos_entraram_triagem.setdefault(
+            user_key,
+            {
+                "nome": texto,
+                "username": update.message.from_user.username or "Sem usuário",
+                "id": user_id,
+                "status": "Respondendo triagem"
+            }
+        )
+
+        alunos_entraram_triagem[user_key]["nome"] = texto
+        alunos_entraram_triagem[user_key]["status"] = "Respondendo triagem"
+
+        salvar_dados()
+
+        await update.message.reply_text(
+            "🎂 Agora diga sua idade:"
+        )
+
+    # ================= IDADE =================
+
+    elif etapa == "idade":
+
+        usuarios[user_key]["idade"] = texto
+        usuarios[user_key]["etapa"] = "q1"
+
+        alunos_entraram_triagem.setdefault(
+            user_key,
+            {
+                "nome": usuarios[user_key].get(
+                    "nome",
+                    update.message.from_user.first_name
+                ),
+                "username": update.message.from_user.username or "Sem usuário",
+                "id": user_id,
+                "status": "Respondendo triagem"
+            }
+        )
+
+        alunos_entraram_triagem[user_key]["status"] = "Respondendo triagem"
+
+        salvar_dados()
+
+        await perguntar(
+            context,
+            user_id,
+            1
+        )
 
 # ================= BLOQUEAR MENU DO PROFESSOR =================
 
