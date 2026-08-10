@@ -220,6 +220,25 @@ def tem_triagem_bloqueada(user_key):
         or user_key in alunos_reprovados
     )
 
+async def esta_na_triagem(context, user_id):
+    try:
+        membro = await context.bot.get_chat_member(
+            chat_id=GRUPO_TRIAGEM_ID,
+            user_id=user_id
+        )
+
+        return membro.status in [
+            "member",
+            "administrator",
+            "creator"
+        ]
+
+    except Exception as erro:
+        print(
+            f"Erro ao verificar membro da triagem "
+            f"({user_id}): {erro}"
+        )
+        return False
 
 async def texto_perfil(context, user_id):
 
