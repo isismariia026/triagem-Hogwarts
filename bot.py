@@ -869,7 +869,8 @@ async def mostrar_links_enviados(
         reply_markup=teclado_professores()
     )
 
-   # ================= TEXTO =================
+# ================= TEXTO =================
+
 async def receber_texto(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
@@ -879,109 +880,109 @@ async def receber_texto(
 
     # ================= MENU DOS PROFESSORES =================
 
-if update.message.from_user.id == ADMIN_ID:
+    if update.message.from_user.id == ADMIN_ID:
 
-    # -------- MENU PRINCIPAL --------
+        # -------- MENU PRINCIPAL --------
 
-    if texto == "📜 Fichas Aguardando":
-        await mostrar_lista_fichas(update, context)
-        return
+        if texto == "📜 Fichas Aguardando":
+            await mostrar_lista_fichas(update, context)
+            return
 
-    elif texto == "⚠️ Alunos Pendentes":
-        await mostrar_pendentes(update, context)
-        return
+        elif texto == "⚠️ Alunos Pendentes":
+            await mostrar_pendentes(update, context)
+            return
 
-    elif texto == "✅ Alunos Aprovados":
-        await mostrar_liberados(update, context)
-        return
+        elif texto == "✅ Alunos Aprovados":
+            await mostrar_liberados(update, context)
+            return
 
-    elif texto == "❌ Alunos Reprovados":
-        await mostrar_reprovados(update, context)
-        return
+        elif texto == "❌ Alunos Reprovados":
+            await mostrar_reprovados(update, context)
+            return
 
-    elif texto == "🧍 Entraram na Triagem":
-        await mostrar_entradas_triagem(update, context)
-        return
+        elif texto == "🧍 Entraram na Triagem":
+            await mostrar_entradas_triagem(update, context)
+            return
 
-    elif texto == "🏰 Entraram no Oficial":
-        await mostrar_entraram_oficial(update, context)
-        return
+        elif texto == "🏰 Entraram no Oficial":
+            await mostrar_entraram_oficial(update, context)
+            return
 
-    elif texto == "🔗 Links Enviados":
-        await mostrar_links_enviados(update, context)
-        return
+        elif texto == "🔗 Links Enviados":
+            await mostrar_links_enviados(update, context)
+            return
 
-    elif texto == "⚙️ Personalizar Acesso":
+        elif texto == "⚙️ Personalizar Acesso":
 
-        context.user_data.pop("modo_admin", None)
+            context.user_data.pop("modo_admin", None)
 
-        await update.message.reply_text(
-            "⚙️ Personalização do acesso:\n\n"
-            "Aqui você pode configurar exatamente como o acesso "
-            "será enviado para os alunos aprovados.",
-            reply_markup=teclado_personalizar()
-        )
-        return
+            await update.message.reply_text(
+                "⚙️ Personalização do acesso:\n\n"
+                "Aqui você pode configurar exatamente como o acesso "
+                "será enviado para os alunos aprovados.",
+                reply_markup=teclado_personalizar()
+            )
+            return
 
-    # -------- SUBMENU PERSONALIZAÇÃO --------
+        # -------- SUBMENU PERSONALIZAÇÃO --------
 
-    elif texto == "🖼 Alterar imagem do acesso":
+        elif texto == "🖼 Alterar imagem do acesso":
 
-        context.user_data["modo_admin"] = "alterar_imagem_acesso"
+            context.user_data["modo_admin"] = "alterar_imagem_acesso"
 
-        await update.message.reply_text(
-            "🖼️ Alterar imagem do acesso\n\n"
-            "Envie agora a imagem que deseja usar no acesso.\n\n"
-            "📌 A imagem será enviada junto com a mensagem "
-            "para todos os alunos aprovados.\n\n"
-            "Se quiser remover a imagem atual, envie:\n"
-            "remover"
-        )
-        return
+            await update.message.reply_text(
+                "🖼️ Alterar imagem do acesso\n\n"
+                "Envie agora a imagem que deseja usar no acesso.\n\n"
+                "📌 A imagem será enviada junto com a mensagem "
+                "para todos os alunos aprovados.\n\n"
+                "Se quiser remover a imagem atual, envie:\n"
+                "remover"
+            )
+            return
 
-    elif texto == "✏️ Alterar mensagem do acesso":
+        elif texto == "✏️ Alterar mensagem do acesso":
 
-        context.user_data["modo_admin"] = "alterar_mensagem_acesso"
+            context.user_data["modo_admin"] = "alterar_mensagem_acesso"
 
-        await update.message.reply_text(
-            "✏️ Alterar mensagem do acesso\n\n"
-            "Envie agora o texto que deseja que o aluno receba "
-            "quando for aprovado.\n\n"
-            "💡 Você pode usar emojis e várias linhas."
-        )
-        return
+            await update.message.reply_text(
+                "✏️ Alterar mensagem do acesso\n\n"
+                "Envie agora o texto que deseja que o aluno receba "
+                "quando for aprovado.\n\n"
+                "💡 Você pode usar emojis e várias linhas."
+            )
+            return
 
-    elif texto == "🔘 Alterar texto do botão":
+        elif texto == "🔘 Alterar texto do botão":
 
-        context.user_data["modo_admin"] = "alterar_botao_acesso"
+            context.user_data["modo_admin"] = "alterar_botao_acesso"
 
-        await update.message.reply_text(
-            "🔘 Alterar texto do botão\n\n"
-            "Envie agora o texto que aparecerá no botão "
-            "de entrada da Biblioteca."
-        )
-        return
+            await update.message.reply_text(
+                "🔘 Alterar texto do botão\n\n"
+                "Envie agora o texto que aparecerá no botão "
+                "de entrada da Biblioteca."
+            )
+            return
 
-    elif texto == "👁 Visualizar acesso":
+        elif texto == "👁 Visualizar acesso":
 
-        context.user_data.pop("modo_admin", None)
+            context.user_data.pop("modo_admin", None)
 
-        await enviar_preview_acesso(
-            update,
-            context
-        )
-        return
+            await enviar_preview_acesso(
+                update,
+                context
+            )
+            return
 
-    elif texto == "🔙 Voltar":
+        elif texto == "🔙 Voltar":
 
-        context.user_data.pop("modo_admin", None)
+            context.user_data.pop("modo_admin", None)
 
-        await update.message.reply_text(
-            "🏰✨ Voltamos para a Sala dos Professores.",
-            reply_markup=teclado_professores()
-        )
-        return
-        
+            await update.message.reply_text(
+                "🏰✨ Voltamos para a Sala dos Professores.",
+                reply_markup=teclado_professores()
+            )
+            return
+
     # ================= PERSONALIZAÇÃO =================
 
     if await processar_personalizacao_admin(update, context):
