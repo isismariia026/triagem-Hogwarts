@@ -305,11 +305,16 @@ def teclado_personalizar():
     )
 
 # ================= START =================
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_id = update.message.from_user.id
+    user_key = k(user_id)
+
+    # ================= ADMIN =================
 
     if user_id == ADMIN_ID:
+
         context.user_data.clear()
 
         await update.message.reply_text(
@@ -317,57 +322,100 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"{NOME_GUARDIA} está pronta para organizar as fichas dos alunos.",
             reply_markup=teclado_professores()
         )
+
         return
 
-    user_key = k(user_id)
+    # ================= VERIFICAR SE ESTÁ NA TRIAGEM =================
+
+    esta_no_grupo = await esta_na_triagem(
+        context,
+        user_id
+    )
+
+    if not esta_no_grupo:
+
+        await update.message.reply_text(
+            f"{NOME_GUARDIA}\n\n"
+            "⚠️ Acesso à Triagem Literária não autorizado.\n\n"
+            "🏰 Antes de iniciar sua jornada, você precisa "
+            "entrar no grupo Expresso Hogwarts.\n\n"
+            "🚂✨ Depois de entrar no grupo de triagem, "
+            "utilize o botão enviado pela Coruja da Biblioteca "
+            "para iniciar sua Triagem Literária."
+        )
+
+        return
+
+    # ================= VERIFICAR SE JÁ FEZ TRIAGEM =================
 
     if user_id not in IDS_TESTE and tem_triagem_bloqueada(user_key):
 
         if user_key in fichas_alunos:
+
             await update.message.reply_text(
-                "📜 Sua triagem já foi finalizada e está aguardando avaliação dos professores."
+                "📜 Sua triagem já foi finalizada e está "
+                "aguardando avaliação dos professores."
             )
+
             return
 
         if user_key in alunos_pendentes:
+
             await update.message.reply_text(
-                "⚠️ Sua ficha está pendente. Corrija foto/usuário e envie /verificar."
+                "⚠️ Sua ficha está pendente.\n\n"
+                "Corrija foto/usuário e envie /verificar."
             )
+
             return
 
         if user_key in alunos_liberados:
+
             await update.message.reply_text(
-                "✅ Você já foi aprovado e liberado para a Biblioteca de Hogwarts."
+                "✅ Você já foi aprovado e liberado "
+                "para a Biblioteca de Hogwarts."
             )
+
             return
 
         if user_key in alunos_reprovados:
+
             await update.message.reply_text(
-                "❌ Sua triagem já foi avaliada. Aguarde orientação dos professores."
+                "❌ Sua triagem já foi avaliada.\n\n"
+                "Aguarde orientação dos professores."
             )
+
             return
 
-    usuarios[user_key] = {"etapa": "nome"}
+    # ================= INICIAR TRIAGEM =================
 
-    alunos_entraram_triagem.setdefault(user_key, {
-        "nome": update.message.from_user.first_name,
-        "username": update.message.from_user.username or "Sem usuário",
-        "id": user_id,
-        "status": "Começou a triagem"
-    })
+    usuarios[user_key] = {
+        "etapa": "nome"
+    }
 
-    alunos_entraram_triagem[user_key]["status"] = "Começou a triagem"
+    alunos_entraram_triagem.setdefault(
+        user_key,
+        {
+            "nome": update.message.from_user.first_name,
+            "username": update.message.from_user.username or "Sem usuário",
+            "id": user_id,
+            "status": "Começou a triagem"
+        }
+    )
+
+    alunos_entraram_triagem[user_key]["status"] = (
+        "Começou a triagem"
+    )
 
     salvar_dados()
 
     await update.message.reply_text(
         f"{NOME_GUARDIA}\n\n"
         "🧪✨ Triagem Literária iniciada!\n\n"
-        "Antes de receber o acesso ao grupo oficial Biblioteca de Hogwarts 🏰📖, "
+        "Antes de receber o acesso ao grupo oficial "
+        "Biblioteca de Hogwarts 🏰📖, "
         "responda sua avaliação.\n\n"
         "✨ Primeiro, diga seu nome:"
     )
-
 
 # ================= NOVO MEMBRO NA TRIAGEM / OFICIAL =================
 async def novo_membro(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1372,24 +1420,18 @@ async def responder(
 
     if user_key not in usuarios:
 
-        usuarios[user_key] = {
-            "etapa": "nome"
-        }
-
-        salvar_dados()
-
-
         await context.bot.send_message(
             chat_id=user_id,
             text=(
-                "⚠️ Sua triagem foi reiniciada.\n\n"
-                "✨ Diga seu nome:"
+                f"{NOME_GUARDIA}\n\n"
+                "⚠️ Esta Triagem Literária não está ativa para você.\n\n"
+                "🏰 Entre primeiro no grupo Expresso Hogwarts "
+                "e utilize o botão oficial enviado pela Coruja "
+                "da Biblioteca para iniciar sua triagem."
             )
         )
 
         return
-
-
 
     num, resp = data.split("_")
 
