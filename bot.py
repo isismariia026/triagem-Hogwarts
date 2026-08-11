@@ -6,6 +6,7 @@ from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
 )
 
 from telegram.ext import (
@@ -61,6 +62,10 @@ links_enviados = {}
 historico_links = {}
 alunos_no_oficial = {}
 
+# Convites de solicitação de entrada aguardando confirmação
+# user_id -> informações do convite
+convites_pendentes = {}
+
 # ================= PERGUNTAS =================
 perguntas = [
     "📚 Você gosta de romance?",
@@ -104,6 +109,7 @@ def salvar_dados():
         "links_enviados": links_enviados,
         "historico_links": historico_links,
         "alunos_no_oficial": alunos_no_oficial,
+        "convites_pendentes": convites_pendentes,
         "config_acesso": config_acesso,
     }
 
@@ -122,6 +128,7 @@ def carregar_dados():
     global alunos_liberados, alunos_reprovados
     global alunos_entraram_triagem, links_enviados
     global historico_links, alunos_no_oficial
+    global convites_pendentes
     global config_acesso
 
 
@@ -179,6 +186,10 @@ def carregar_dados():
         dados.get("alunos_no_oficial", {})
     )
 
+    convites_pendentes.update(
+        dados.get("convites_pendentes", {})
+    )
+
     config_acesso.update(
         dados.get("config_acesso", {})
     )
@@ -218,6 +229,9 @@ def tem_triagem_bloqueada(user_key):
         or user_key in alunos_pendentes
         or user_key in alunos_liberados
         or user_key in alunos_reprovados
+        or user_key in alunos_entraram_triagem
+        or user_key in historico_links
+        or user_key in alunos_no_oficial
     )
 
 async def esta_na_triagem(context, user_id):
@@ -414,8 +428,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Antes de receber o acesso ao grupo oficial "
         "Biblioteca de Hogwarts 🏰📖, "
         "responda sua avaliação.\n\n"
-        "✨ Primeiro, diga seu nome:"
-    )
+        "✨ Primeiro, diga seu nome:",
+        reply_markup=ReplyKeyboardRemove()
+)
 
 # ================= NOVO MEMBRO NA TRIAGEM / OFICIAL =================
 async def novo_membro(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -507,6 +522,29 @@ async def novo_membro(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 links_enviados.pop(user_key, None)
 
             salvar_dados()
+            
+                    try:
+                         await context.bot.send_message(
+                             chat_id=user_id,
+                             text=(
+                                 f"{NOME_GUARDIA}\n\n"
+                                 "🏰✨ Seja muito bem-vindo(a) à "
+                                 "Biblioteca de Hogwarts! 📖🪄\n\n"
+                                 "🎉 Sua entrada foi confirmada com sucesso.\n\n"
+                                 "📜 Sua Triagem Literária foi concluída "
+                                 "e seu acesso foi validado pela Coruja da Biblioteca.\n\n"
+                                 "✨ Agora você faz oficialmente parte "
+                                 "da nossa Biblioteca.\n\n"
+                                 "📚 Prepare sua varinha, escolha seu livro "
+                                 "e aproveite sua nova casa! 🦉🏰"
+                             )
+                         )
+
+                    except Exception as erro:
+
+                        print(
+                            f"Erro ao enviar confirmação de entrada: {erro}"
+                        )
 
 # ================= PERSONALIZAÇÃO DO ACESSO =================
 async def processar_personalizacao_admin(
@@ -1696,13 +1734,81 @@ async def enviar_link_unico(
     nome,
     username
 ):
-    user_key = k(user_id)
-    link = await criar_link_unico(context)
 
-    keyboard = [[InlineKeyboardButton(config_acesso["texto_botao"], url=link)]]
-    texto = f"{NOME_GUARDIA}\n\n{config_acesso['mensagem']}"
+    user_key = k(user_id)
+
+    # Se já existe convite aguardando solicitação,
+    # não cria outro.
+    if user_key in convites_pendentes:
+
+        convite_antigo = convites_pendentes[user_key]
+
+        link_existente = convite_antigo.get("link")
+
+        if link_existente:
+
+            keyboard = [[
+                InlineKeyboardButton(
+                    config_acesso["texto_botao"],
+                    url=link_existente
+                )
+            ]]
+
+            texto = (
+                f"{NOME_GUARDIA}\n\n"
+                f"{config_acesso['mensagem']}"
+            )
+
+            if config_acesso.get("imagem_file_id"):
+
+                msg = await context.bot.send_photo(
+                    chat_id=user_id,
+                    photo=config_acesso["imagem_file_id"],
+                    caption=texto,
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    protect_content=True
+                )
+
+            else:
+
+                msg = await context.bot.send_message(
+                    chat_id=user_id,
+                    text=texto,
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    protect_content=True
+                )
+
+            links_enviados[user_key] = msg.message_id
+
+            salvar_dados()
+
+            return
+
+    # ================= CRIAR NOVO CONVITE =================
+
+    convite = await context.bot.create_chat_invite_link(
+        chat_id=GRUPO_OFICIAL_ID,
+        creates_join_request=True
+    )
+
+    link = convite.invite_link
+
+    keyboard = [[
+        InlineKeyboardButton(
+            config_acesso["texto_botao"],
+            url=link
+        )
+    ]]
+
+    texto = (
+        f"{NOME_GUARDIA}\n\n"
+        f"{config_acesso['mensagem']}"
+    )
+
+    # ================= ENVIAR ACESSO =================
 
     if config_acesso.get("imagem_file_id"):
+
         msg = await context.bot.send_photo(
             chat_id=user_id,
             photo=config_acesso["imagem_file_id"],
@@ -1710,7 +1816,9 @@ async def enviar_link_unico(
             reply_markup=InlineKeyboardMarkup(keyboard),
             protect_content=True
         )
+
     else:
+
         msg = await context.bot.send_message(
             chat_id=user_id,
             text=texto,
@@ -1718,12 +1826,23 @@ async def enviar_link_unico(
             protect_content=True
         )
 
+    # ================= REGISTRAR CONVITE =================
+
+    convites_pendentes[user_key] = {
+        "user_id": user_id,
+        "nome": nome,
+        "username": username,
+        "link": link,
+        "message_id": msg.message_id,
+        "status": "Aguardando solicitação de entrada"
+    }
+
     links_enviados[user_key] = msg.message_id
 
     historico_links[user_key] = {
         "nome": nome,
         "username": username,
-        "status": "Convite enviado em botão"
+        "status": "Convite de solicitação enviado"
     }
 
     salvar_dados()
@@ -2711,7 +2830,159 @@ async def menu_callback(
             "✅ Aluno liberado manualmente.\n\n"
             "A Coruja enviou o convite único no PV do aluno."
         )
+# ================= SOLICITAÇÃO DE ENTRADA =================
 
+async def tratar_solicitacao_entrada(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    request = update.chat_join_request
+
+    if not request:
+        return
+
+    user_id = request.from_user.id
+    user_key = k(user_id)
+
+    print(
+        f"📨 Solicitação de entrada recebida: "
+        f"{user_id}"
+    )
+
+    # ================= VERIFICAR SE O ID ESTÁ AUTORIZADO =================
+
+    convite = convites_pendentes.get(user_key)
+
+    if not convite:
+
+        print(
+            f"🚫 Solicitação recusada: ID {user_id} "
+            f"não possui convite autorizado."
+        )
+
+        try:
+
+            await request.decline()
+
+        except Exception as erro:
+
+            print(
+                f"Erro ao recusar solicitação: {erro}"
+            )
+
+        return
+
+    # ================= VERIFICAR O LINK USADO =================
+
+    link_usado = None
+
+    if request.invite_link:
+
+        link_usado = request.invite_link.invite_link
+
+    link_autorizado = convite.get("link")
+
+    if link_usado != link_autorizado:
+
+        print(
+            f"🚫 Link inválido para o ID {user_id}."
+        )
+
+        try:
+
+            await request.decline()
+
+        except Exception as erro:
+
+            print(
+                f"Erro ao recusar solicitação: {erro}"
+            )
+
+        return
+
+    # ================= APROVAR =================
+
+    try:
+
+        await request.approve()
+
+        print(
+            f"✅ Solicitação aprovada: {user_id}"
+        )
+
+    except Exception as erro:
+
+        print(
+            f"❌ Erro ao aprovar {user_id}: {erro}"
+        )
+
+        return
+
+    # ================= APAGAR LINK =================
+
+    try:
+
+        await context.bot.revoke_chat_invite_link(
+            chat_id=GRUPO_OFICIAL_ID,
+            invite_link=link_autorizado
+        )
+
+        print(
+            f"🗑 Convite revogado: {user_id}"
+        )
+
+    except Exception as erro:
+
+        print(
+            f"Erro ao revogar convite: {erro}"
+        )
+
+    # ================= APAGAR MENSAGEM DO PV =================
+
+    message_id = convite.get("message_id")
+
+    if message_id:
+
+        try:
+
+            await context.bot.delete_message(
+                chat_id=user_id,
+                message_id=message_id
+            )
+
+            print(
+                f"🗑 Mensagem do convite apagada: {user_id}"
+            )
+
+        except Exception as erro:
+
+            print(
+                f"Erro ao apagar mensagem do convite: {erro}"
+            )
+
+    # ================= ATUALIZAR STATUS =================
+
+    convite["status"] = "Solicitação aprovada"
+
+    historico_links[user_key]["status"] = (
+        "Solicitação aprovada e convite revogado"
+    )
+
+    # O convite não pode mais ser usado
+    convites_pendentes.pop(
+        user_key,
+        None
+    )
+
+    if user_key in links_enviados:
+
+        links_enviados.pop(
+            user_key,
+            None
+        )
+
+    salvar_dados()
 
 # ================= MAIN =================
 
@@ -2745,6 +3016,11 @@ def main():
         )
     )
 
+    application.add_handler(
+        ChatJoinRequestHandler(
+            tratar_solicitacao_entrada
+        )
+    )
 
     application.add_handler(
         MessageHandler(
@@ -2804,10 +3080,10 @@ def main():
         allowed_updates=[
             "message",
             "callback_query",
-            "chat_member"
+            "chat_member",
+            "chat_join_request"
         ]
     )
-
 
 if __name__ == "__main__":
     main()
