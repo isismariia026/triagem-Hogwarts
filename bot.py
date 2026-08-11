@@ -523,28 +523,27 @@ async def novo_membro(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             salvar_dados()
             
-                    try:
-                         await context.bot.send_message(
-                             chat_id=user_id,
-                             text=(
-                                 f"{NOME_GUARDIA}\n\n"
-                                 "🏰✨ Seja muito bem-vindo(a) à "
-                                 "Biblioteca de Hogwarts! 📖🪄\n\n"
-                                 "🎉 Sua entrada foi confirmada com sucesso.\n\n"
-                                 "📜 Sua Triagem Literária foi concluída "
-                                 "e seu acesso foi validado pela Coruja da Biblioteca.\n\n"
-                                 "✨ Agora você faz oficialmente parte "
-                                 "da nossa Biblioteca.\n\n"
-                                 "📚 Prepare sua varinha, escolha seu livro "
-                                 "e aproveite sua nova casa! 🦉🏰"
-                             )
-                         )
-
-                    except Exception as erro:
-
-                        print(
-                            f"Erro ao enviar confirmação de entrada: {erro}"
+                try:
+                    await context.bot.send_message(
+                        chat_id=user_id,
+                        text=(
+                            f"{NOME_GUARDIA}\n\n"
+                            "🏰✨ Seja muito bem-vindo(a) à "
+                            "Biblioteca de Hogwarts! 📖🪄\n\n"
+                            "🎉 Sua entrada foi confirmada com sucesso.\n\n"
+                            "📜 Sua Triagem Literária foi concluída "
+                            "e seu acesso foi validado pela Coruja da Biblioteca.\n\n"
+                            "✨ Agora você faz oficialmente parte "
+                            "da nossa Biblioteca.\n\n"
+                            "📚 Prepare sua varinha, escolha seu livro "
+                            e aproveite sua nova casa! 🦉🏰"
                         )
+                    )
+
+                except Exception as erro:
+                    print(
+                        f"Erro ao enviar confirmação de entrada: {erro}"
+                    )
 
 # ================= PERSONALIZAÇÃO DO ACESSO =================
 async def processar_personalizacao_admin(
