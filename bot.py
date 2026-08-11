@@ -558,8 +558,9 @@ elif chat_id == GRUPO_OFICIAL_ID:
             print(
                 f"Erro ao enviar confirmação de entrada: {erro}"
             )
-            
+
 # ================= PERSONALIZAÇÃO DO ACESSO =================
+
 async def processar_personalizacao_admin(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
