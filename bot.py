@@ -479,8 +479,7 @@ async def novo_membro(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
 
-
-    elif chat_id == GRUPO_OFICIAL_ID:
+   elif chat_id == GRUPO_OFICIAL_ID:
 
         for membro in update.message.new_chat_members:
 
@@ -499,14 +498,22 @@ async def novo_membro(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "nome": membro.first_name,
                 "username": membro.username or "Sem usuário",
                 "id": user_id,
-                "status": "Entrou após triagem" if passou_pela_triagem else "Entrou sem passar pela triagem"
+                "status": (
+                    "Entrou após triagem"
+                    if passou_pela_triagem
+                    else "Entrou sem passar pela triagem"
+                )
             }
 
             if user_key in historico_links:
-                historico_links[user_key]["status"] = "Entrou no grupo oficial"
+                historico_links[user_key]["status"] = (
+                    "Entrou no grupo oficial"
+                )
 
             if user_key in alunos_liberados:
-                alunos_liberados[user_key]["status"] = "Entrou no grupo oficial"
+                alunos_liberados[user_key]["status"] = (
+                    "Entrou no grupo oficial"
+                )
 
             if user_key in links_enviados:
 
@@ -517,33 +524,39 @@ async def novo_membro(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     )
 
                 except Exception as erro:
-                    print("Erro ao apagar link do PV:", erro)
+                    print(
+                        "Erro ao apagar link do PV:",
+                        erro
+                    )
 
-                links_enviados.pop(user_key, None)
+                links_enviados.pop(
+                    user_key,
+                    None
+                )
 
             salvar_dados()
-            
-                try:
-                    await context.bot.send_message(
-                        chat_id=user_id,
-                        text=(
-                            f"{NOME_GUARDIA}\n\n"
-                            "🏰✨ Seja muito bem-vindo(a) à "
-                            "Biblioteca de Hogwarts! 📖🪄\n\n"
-                            "🎉 Sua entrada foi confirmada com sucesso.\n\n"
-                            "📜 Sua Triagem Literária foi concluída "
-                            "e seu acesso foi validado pela Coruja da Biblioteca.\n\n"
-                            "✨ Agora você faz oficialmente parte "
-                            "da nossa Biblioteca.\n\n"
-                            "📚 Prepare sua varinha, escolha seu livro "
-                            e aproveite sua nova casa! 🦉🏰"
-                        )
-                    )
 
-                except Exception as erro:
-                    print(
-                        f"Erro ao enviar confirmação de entrada: {erro}"
+            try:
+                await context.bot.send_message(
+                    chat_id=user_id,
+                    text=(
+                        f"{NOME_GUARDIA}\n\n"
+                        "🏰✨ Seja muito bem-vindo(a) à "
+                        "Biblioteca de Hogwarts! 📖🪄\n\n"
+                        "🎉 Sua entrada foi confirmada com sucesso.\n\n"
+                        "📜 Sua Triagem Literária foi concluída "
+                        "e seu acesso foi validado pela Coruja da Biblioteca.\n\n"
+                        "✨ Agora você faz oficialmente parte "
+                        "da nossa Biblioteca.\n\n"
+                        "📚 Prepare sua varinha, escolha seu livro "
+                        "e aproveite sua nova casa! 🦉🏰"
                     )
+                )
+
+            except Exception as erro:
+                print(
+                    f"Erro ao enviar confirmação de entrada: {erro}"
+                )
 
 # ================= PERSONALIZAÇÃO DO ACESSO =================
 async def processar_personalizacao_admin(
