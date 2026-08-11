@@ -436,7 +436,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def novo_membro(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-```
 chat_id = update.effective_chat.id
 
 if chat_id == GRUPO_TRIAGEM_ID:
