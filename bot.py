@@ -433,131 +433,133 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 )
 
 # ================= NOVO MEMBRO NA TRIAGEM / OFICIAL =================
+
 async def novo_membro(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    chat_id = update.effective_chat.id
+```
+chat_id = update.effective_chat.id
 
-    if chat_id == GRUPO_TRIAGEM_ID:
+if chat_id == GRUPO_TRIAGEM_ID:
 
-        for membro in update.message.new_chat_members:
+    for membro in update.message.new_chat_members:
 
-            if membro.is_bot:
-                continue
+        if membro.is_bot:
+            continue
 
-            user_id = membro.id
-            user_key = k(user_id)
-            nome = membro.first_name
+        user_id = membro.id
+        user_key = k(user_id)
+        nome = membro.first_name
 
-            alunos_entraram_triagem[user_key] = {
-                "nome": nome,
-                "username": membro.username or "Sem usuário",
-                "id": user_id,
-                "status": "Entrou na triagem, mas ainda não finalizou"
-            }
+        alunos_entraram_triagem[user_key] = {
+            "nome": nome,
+            "username": membro.username or "Sem usuário",
+            "id": user_id,
+            "status": "Entrou na triagem, mas ainda não finalizou"
+        }
 
-            salvar_dados()
+        salvar_dados()
 
-            keyboard = [[
-                InlineKeyboardButton(
-                    "🧪 Fazer Triagem Literária",
-                    url=f"https://t.me/{BOT_USERNAME}?start=triagem"
-                )
-            ]]
+        keyboard = [[
+            InlineKeyboardButton(
+                "🧪 Fazer Triagem Literária",
+                url=f"https://t.me/{BOT_USERNAME}?start=triagem"
+            )
+        ]]
 
-            await context.bot.send_message(
-                chat_id=GRUPO_TRIAGEM_ID,
-                text=(
-                    f"🦉✨ Seja bem-vindo(a), {nome}!\n\n"
-                    "Você chegou à Plataforma 9¾ 🚂✨📖\n\n"
-                    "Este é o grupo de entrada para quem deseja fazer parte do nosso grupo oficial:\n\n"
-                    "🏰📖 Biblioteca de Hogwarts\n\n"
-                    "📌 Requisitos obrigatórios:\n"
-                    "• Ter uma imagem/foto no perfil\n"
-                    "• Ter um usuário visível no Telegram, exemplo: @seunome\n\n"
-                    "Clique no botão abaixo para fazer sua Triagem Literária:"
-                ),
-                reply_markup=InlineKeyboardMarkup(keyboard)
+        await context.bot.send_message(
+            chat_id=GRUPO_TRIAGEM_ID,
+            text=(
+                f"🦉✨ Seja bem-vindo(a), {nome}!\n\n"
+                "Você chegou à Plataforma 9¾ 🚂✨📖\n\n"
+                "Este é o grupo de entrada para quem deseja fazer parte do nosso grupo oficial:\n\n"
+                "🏰📖 Biblioteca de Hogwarts\n\n"
+                "📌 Requisitos obrigatórios:\n"
+                "• Ter uma imagem/foto no perfil\n"
+                "• Ter um usuário visível no Telegram, exemplo: @seunome\n\n"
+                "Clique no botão abaixo para fazer sua Triagem Literária:"
+            ),
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+elif chat_id == GRUPO_OFICIAL_ID:
+
+    for membro in update.message.new_chat_members:
+
+        user_id = membro.id
+        user_key = k(user_id)
+
+        passou_pela_triagem = (
+            user_key in alunos_liberados
+            or user_key in alunos_pendentes
+            or user_key in alunos_reprovados
+            or user_key in fichas_alunos
+            or user_key in historico_links
+        )
+
+        alunos_no_oficial[user_key] = {
+            "nome": membro.first_name,
+            "username": membro.username or "Sem usuário",
+            "id": user_id,
+            "status": (
+                "Entrou após triagem"
+                if passou_pela_triagem
+                else "Entrou sem passar pela triagem"
+            )
+        }
+
+        if user_key in historico_links:
+            historico_links[user_key]["status"] = (
+                "Entrou no grupo oficial"
             )
 
-   elif chat_id == GRUPO_OFICIAL_ID:
-
-        for membro in update.message.new_chat_members:
-
-            user_id = membro.id
-            user_key = k(user_id)
-
-            passou_pela_triagem = (
-                user_key in alunos_liberados
-                or user_key in alunos_pendentes
-                or user_key in alunos_reprovados
-                or user_key in fichas_alunos
-                or user_key in historico_links
+        if user_key in alunos_liberados:
+            alunos_liberados[user_key]["status"] = (
+                "Entrou no grupo oficial"
             )
 
-            alunos_no_oficial[user_key] = {
-                "nome": membro.first_name,
-                "username": membro.username or "Sem usuário",
-                "id": user_id,
-                "status": (
-                    "Entrou após triagem"
-                    if passou_pela_triagem
-                    else "Entrou sem passar pela triagem"
-                )
-            }
-
-            if user_key in historico_links:
-                historico_links[user_key]["status"] = (
-                    "Entrou no grupo oficial"
-                )
-
-            if user_key in alunos_liberados:
-                alunos_liberados[user_key]["status"] = (
-                    "Entrou no grupo oficial"
-                )
-
-            if user_key in links_enviados:
-
-                try:
-                    await context.bot.delete_message(
-                        chat_id=user_id,
-                        message_id=links_enviados[user_key]
-                    )
-
-                except Exception as erro:
-                    print(
-                        "Erro ao apagar link do PV:",
-                        erro
-                    )
-
-                links_enviados.pop(
-                    user_key,
-                    None
-                )
-
-            salvar_dados()
+        if user_key in links_enviados:
 
             try:
-                await context.bot.send_message(
+                await context.bot.delete_message(
                     chat_id=user_id,
-                    text=(
-                        f"{NOME_GUARDIA}\n\n"
-                        "🏰✨ Seja muito bem-vindo(a) à "
-                        "Biblioteca de Hogwarts! 📖🪄\n\n"
-                        "🎉 Sua entrada foi confirmada com sucesso.\n\n"
-                        "📜 Sua Triagem Literária foi concluída "
-                        "e seu acesso foi validado pela Coruja da Biblioteca.\n\n"
-                        "✨ Agora você faz oficialmente parte "
-                        "da nossa Biblioteca.\n\n"
-                        "📚 Prepare sua varinha, escolha seu livro "
-                        "e aproveite sua nova casa! 🦉🏰"
-                    )
+                    message_id=links_enviados[user_key]
                 )
 
             except Exception as erro:
                 print(
-                    f"Erro ao enviar confirmação de entrada: {erro}"
+                    "Erro ao apagar link do PV:",
+                    erro
                 )
 
+            links_enviados.pop(
+                user_key,
+                None
+            )
+
+        salvar_dados()
+
+        try:
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=(
+                    f"{NOME_GUARDIA}\n\n"
+                    "🏰✨ Seja muito bem-vindo(a) à "
+                    "Biblioteca de Hogwarts! 📖🪄\n\n"
+                    "🎉 Sua entrada foi confirmada com sucesso.\n\n"
+                    "📜 Sua Triagem Literária foi concluída "
+                    "e seu acesso foi validado pela Coruja da Biblioteca.\n\n"
+                    "✨ Agora você faz oficialmente parte "
+                    "da nossa Biblioteca.\n\n"
+                    "📚 Prepare sua varinha, escolha seu livro "
+                    "e aproveite sua nova casa! 🦉🏰"
+                )
+            )
+
+        except Exception as erro:
+            print(
+                f"Erro ao enviar confirmação de entrada: {erro}"
+            )
+            
 # ================= PERSONALIZAÇÃO DO ACESSO =================
 async def processar_personalizacao_admin(
     update: Update,
