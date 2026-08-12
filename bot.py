@@ -322,7 +322,7 @@ def teclado_personalizar():
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    user_id = update.callback_query.from_user.id
+    user_id = update.effective_user.id
     user_key = k(user_id)
 
     # ================= ADMIN =================
